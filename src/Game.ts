@@ -3,22 +3,21 @@ import Phaser from "phaser";
 import Player from "./Player";
 import MouseTileMarker from "./MouseTileMarker";
 import TILES from "./TileMapping";
+import ChunkManager from "./ChunkManager";
 
 /**
  * A class that extends Phaser.Scene and wraps up the core logic for the platformer level.
  */
 export default class Game extends Phaser.Scene {
-  isPlayerDead = false;
-  groundLayer!: Phaser.Tilemaps.DynamicTilemapLayer;
   player!: Player;
   marker!: MouseTileMarker;
   spikeGroup!: Phaser.Physics.Arcade.StaticGroup;
   particles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
+  chunkManager!: ChunkManager;
 
   public static TILE_SPRITESHEET = "voxel_tiles";
   public static PLAYER_SPRITESHEET = "voxel_players";
   public static OLD_PLAYER_SPRITESHEET = "characters";
-  public static DIRT_PARTICLE_IMAGE = "dirt_particle";
   public static PARTICLE_SPRITESHEET = "voxel_particles";
 
   preload() {
@@ -61,89 +60,68 @@ export default class Game extends Phaser.Scene {
 
   create() {
     const camera = this.cameras.main;
-    camera.setZoom(0.5);
-    // Creating a blank tilemap
-    const tileSize = 128;
-    const pagesWide = 1;
-    const pagesTall = 1;
-    // All of these units are in *tiles*
-    const totalWidth = Math.floor((camera.width * pagesWide) / tileSize);
-    const totalHeight = Math.floor((camera.height * pagesTall) / tileSize);
-    const skyHeight = Math.floor(camera.height / 2 / tileSize);
-    const grassHeight = 1;
 
-    const map = this.make.tilemap({
-      tileWidth: tileSize,
-      tileHeight: tileSize,
-      width: totalWidth,
-      height: totalHeight,
+    camera.setZoom(0.6);
+
+    this.player = new Player(this, 50, 50);
+
+    this.chunkManager = new ChunkManager(this, camera.width, camera.height);
+    const physics = this.physics;
+    const player = this.player;
+    this.chunkManager.chunks.forEach((chunk) => {
+      physics.add.collider(player.sprite, chunk.layer);
+    });
+    this.chunkManager.onLayerCreated((layer) => {
+      physics.add.collider(player.sprite, layer);
     });
 
-    const tileset = map.addTilesetImage(
-      Game.TILE_SPRITESHEET,
-      undefined,
-      tileSize,
-      tileSize,
-      1,
-      2
-    );
-
-    this.groundLayer = map
-      .createBlankDynamicLayer("Ground", tileset)
-      .fill(TILES.BLANK)
-      .fill(TILES.GRASS, 0, skyHeight, totalWidth, grassHeight)
-      .weightedRandomize(
-        0,
-        skyHeight + grassHeight,
-        totalWidth,
-        totalHeight - skyHeight - grassHeight,
-        TILES.DIRT
-      )
-      .setCollisionByExclusion([TILES.BLANK, TILES.STONE]);
-
-    const x = map.tileToWorldX(totalWidth / 2);
-    const y = map.tileToWorldY(skyHeight - 1);
-    this.player = new Player(this, x, y);
+    // const x = this.chunkManager.map.tileToWorldX(totalWidth / 2);
+    // const y = this.chunkManager.map.tileToWorldY(skyHeight - 1);
 
     // Watch the player and tilemap layers for collisions, for the duration of the scene:
-    this.physics.add.collider(this.player.sprite, this.groundLayer);
 
     // Constrain the camera so that it isn't allowed to move outside the width/height of tilemap
-    camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    camera.setBounds(
+      0,
+      0,
+      this.chunkManager.map.widthInPixels,
+      this.chunkManager.map.heightInPixels
+    );
     camera.startFollow(this.player.sprite);
 
-    this.marker = new MouseTileMarker(this, map);
+    // this.marker = new MouseTileMarker(this, map);
     this.particles = this.add.particles(Game.PARTICLE_SPRITESHEET);
   }
 
   update(time: number, delta: number) {
     this.player.update();
-    this.marker.update();
+    // this.marker.update();
+    this.chunkManager.update();
 
-    const pointer = this.input.activePointer;
-    if (pointer.isDown) {
-      const worldPoint = pointer.positionToCamera(
-        this.cameras.main
-      ) as Phaser.Math.Vector2;
-      const tile = this.groundLayer.putTileAtWorldXY(
-        TILES.STONE,
-        worldPoint.x,
-        worldPoint.y
-      );
-      tile.setCollision(false);
-      const cam = this.cameras.main;
-      cam.shake(50, 0.05);
+    // const pointer = this.input.activePointer;
+    // if (pointer.isDown) {
+    //   const worldPoint = pointer.positionToCamera(
+    //     this.cameras.main
+    //   ) as Phaser.Math.Vector2;
+    //   const tile = this.groundLayer.putTileAtWorldXY(
+    //     TILES.STONE,
+    //     worldPoint.x,
+    //     worldPoint.y
+    //   );
+    //   tile.setCollision(false);
+    //   const cam = this.cameras.main;
+    //   cam.shake(50, 0.05);
 
-      this.particles
-        .createEmitter({
-          frame: "square_orange.png",
-          x: 0,
-          y: 0,
-          lifespan: 300,
-          speed: { min: 300, max: 500 },
-          scale: { start: 1, end: 0 },
-        })
-        .explode(1, worldPoint.x, worldPoint.y);
-    }
+    //   this.particles
+    //     .createEmitter({
+    //       frame: "square_orange.png",
+    //       x: 0,
+    //       y: 0,
+    //       lifespan: 300,
+    //       speed: { min: 300, max: 500 },
+    //       scale: { start: 1, end: 0 },
+    //     })
+    //     .explode(1, worldPoint.x, worldPoint.y);
+    // }
   }
 }

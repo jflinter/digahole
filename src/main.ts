@@ -8,13 +8,15 @@ const config: Phaser.Types.Core.GameConfig = {
   height: window.innerHeight,
   backgroundColor: "#B0E9FC",
   scene: [Game],
+  audio: {
+    disableWebAudio: true,
+  },
   physics: {
     default: "arcade",
     arcade: {
       gravity: {
         y: 1000,
       },
-      debug: true,
     },
   },
 };
