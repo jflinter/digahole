@@ -13,12 +13,20 @@ export default class Game extends Phaser.Scene {
   player!: Player;
   marker!: MouseTileMarker;
   spikeGroup!: Phaser.Physics.Arcade.StaticGroup;
+  particles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
 
   public static TILE_SPRITESHEET = "voxel_tiles";
   public static PLAYER_SPRITESHEET = "voxel_players";
   public static OLD_PLAYER_SPRITESHEET = "characters";
+  public static DIRT_PARTICLE_IMAGE = "dirt_particle";
+  public static PARTICLE_SPRITESHEET = "voxel_particles";
 
   preload() {
+    this.load.atlasXML(
+      Game.PARTICLE_SPRITESHEET,
+      "assets/spritesheets/spritesheet_particles.png",
+      "assets/spritesheets/spritesheet_particles.xml"
+    );
     this.load.spritesheet(
       Game.TILE_SPRITESHEET,
       "../assets/images/spritesheet_tiles_extruded.png",
@@ -103,9 +111,39 @@ export default class Game extends Phaser.Scene {
     // Constrain the camera so that it isn't allowed to move outside the width/height of tilemap
     camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     camera.startFollow(this.player.sprite);
+
+    this.marker = new MouseTileMarker(this, map);
+    this.particles = this.add.particles(Game.PARTICLE_SPRITESHEET);
   }
 
   update(time: number, delta: number) {
     this.player.update();
+    this.marker.update();
+
+    const pointer = this.input.activePointer;
+    if (pointer.isDown) {
+      const worldPoint = pointer.positionToCamera(
+        this.cameras.main
+      ) as Phaser.Math.Vector2;
+      const tile = this.groundLayer.putTileAtWorldXY(
+        TILES.STONE,
+        worldPoint.x,
+        worldPoint.y
+      );
+      tile.setCollision(false);
+      const cam = this.cameras.main;
+      cam.shake(50, 0.05);
+
+      this.particles
+        .createEmitter({
+          frame: "square_orange.png",
+          x: 0,
+          y: 0,
+          lifespan: 300,
+          speed: { min: 300, max: 500 },
+          scale: { start: 1, end: 0 },
+        })
+        .explode(1, worldPoint.x, worldPoint.y);
+    }
   }
 }
