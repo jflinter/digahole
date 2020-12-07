@@ -73,27 +73,27 @@ export default class Game extends Phaser.Scene {
     this.particles = this.add.particles(Game.PARTICLE_SPRITESHEET);
   }
 
-  canDig(worldX, worldY): boolean {
-    // is the tile earth
-    // is the tile directly adjacent to the player
-    // if not, is it on a diagonal but can be reached
-    this.chunkManager.map.worldToTileXY;
-    this.chunkManager.map.getTileAtWorldXY(
-      this.player.sprite.x,
-      this.player.sprite.y
-    );
-  }
+  // canDig(worldX, worldY): boolean {
+  //   // is the tile earth
+  //   // is the tile directly adjacent to the player
+  //   // if not, is it on a diagonal but can be reached
+  //   this.chunkManager.map.worldToTileXY;
+  //   this.chunkManager.map.getTileAtWorldXY(
+  //     this.player.sprite.x,
+  //     this.player.sprite.y
+  //   );
+  // }
 
-  canPlace(worldX, worldY): boolean {
-    // is the tile empty
-    // if we are above the surface, is there earth adjacent ot the tile
-    // are we on the tile? if so, is the space above us open
-    // are we next to the tile
-    this.chunkManager.map.getTileAtWorldXY(
-      this.player.sprite.x,
-      this.player.sprite.y
-    );
-  }
+  // canPlace(worldX, worldY): boolean {
+  //   // is the tile empty
+  //   // if we are above the surface, is there earth adjacent ot the tile
+  //   // are we on the tile? if so, is the space above us open
+  //   // are we next to the tile
+  //   this.chunkManager.map.getTileAtWorldXY(
+  //     this.player.sprite.x,
+  //     this.player.sprite.y
+  //   );
+  // }
 
   hasDirt: boolean = false;
   lastDug = 0;
@@ -124,15 +124,25 @@ export default class Game extends Phaser.Scene {
     if (pointer.isDown && time - this.lastDug > 500 /* millis */) {
       this.lastDug = time;
       const worldPoint = pointer.positionToCamera(
-        this.cameras.main
+        camera
       ) as Phaser.Math.Vector2;
+      const tilePoint = this.chunkManager.worldToTileXY(
+        worldPoint.x,
+        worldPoint.y
+      );
+      console.log(
+        `clicked world point ${[worldPoint.x, worldPoint.y]} tile point ${[
+          tilePoint.x,
+          tilePoint.y,
+        ]}`
+      );
       const tileToDestroy = this.chunkManager.getTileAtWorldXY(
         worldPoint.x,
         worldPoint.y
       );
       if (tileToDestroy.collides && !this.hasDirt) {
         const tile = this.chunkManager.putTileAtWorldXY(
-          TILES.STONE,
+          this.chunkManager.digTileFor(worldPoint.x, worldPoint.y),
           worldPoint.x,
           worldPoint.y
         );
@@ -153,7 +163,7 @@ export default class Game extends Phaser.Scene {
         this.hasDirt = true;
       } else if (!tileToDestroy.collides && this.hasDirt) {
         const tile = this.chunkManager.putTileAtWorldXY(
-          TILES.DIRT[0].index,
+          this.chunkManager.fillTileFor(worldPoint.x, worldPoint.y),
           worldPoint.x,
           worldPoint.y
         );

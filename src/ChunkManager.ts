@@ -48,6 +48,7 @@ class Chunk {
 
 export const TILE_SIZE = 128;
 const TILE_SPRITESHEET = "voxel_tiles";
+const SKY_HEIGHT_TILES = 4;
 const CHUNK_SIZE = 1024;
 const CHUNK_TILE_SCALE = CHUNK_SIZE / TILE_SIZE;
 
@@ -81,6 +82,19 @@ export default class ChunkManager {
     this.chunks = {};
   }
 
+  digTileFor(worldX, worldY) {
+    const tile = this.worldToTileXY(worldX, worldY);
+    if (tile.y < SKY_HEIGHT_TILES) {
+      return TILES.BLANK;
+    } else {
+      return TILES.STONE;
+    }
+  }
+
+  fillTileFor(worldX, worldY): number {
+    return TILES.DIRT[0].index;
+  }
+
   chunkWidth() {
     return this.width / CHUNK_SIZE;
   }
@@ -103,7 +117,6 @@ export default class ChunkManager {
     }
 
     // note: these operations work in tile units
-    const skyHeight = 4;
     const [chunkX, chunkY] = this.fromChunkID(id);
     let layer = this.map
       .createBlankDynamicLayer(
@@ -118,12 +131,12 @@ export default class ChunkManager {
     if (chunkY === 0) {
       layer = layer
         .fill(TILES.BLANK)
-        .fill(TILES.GRASS, 0, skyHeight, CHUNK_TILE_SCALE, 1)
+        .fill(TILES.GRASS, 0, SKY_HEIGHT_TILES, CHUNK_TILE_SCALE, 1)
         .weightedRandomize(
           0,
-          skyHeight + 1,
+          SKY_HEIGHT_TILES + 1,
           CHUNK_TILE_SCALE,
-          CHUNK_TILE_SCALE - skyHeight - 1,
+          CHUNK_TILE_SCALE - SKY_HEIGHT_TILES - 1,
           TILES.DIRT
         )
         .setCollisionByExclusion([TILES.BLUE, TILES.BLANK, TILES.STONE]);
@@ -159,6 +172,17 @@ export default class ChunkManager {
     const chunkY = Math.floor(y / CHUNK_SIZE);
     const chunkID = this.toChunkID(chunkX, chunkY);
     return this.chunks[chunkID];
+  }
+
+  worldToTileXY(x: integer, y: integer) {
+    return this.map.worldToTileXY(
+      x,
+      y,
+      undefined,
+      undefined,
+      undefined,
+      this.chunkAtWorldXY(x, y).layer
+    );
   }
 
   getTileAtWorldXY(x: integer, y: integer): Phaser.Tilemaps.Tile {
