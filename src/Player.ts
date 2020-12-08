@@ -105,7 +105,7 @@ export default class Player {
       w: W,
       a: A,
       s: S,
-      D: D,
+      d: D,
     }) as any;
   }
 
