@@ -4,7 +4,7 @@ import _ from "lodash";
 import Player from "./Player";
 import MouseTileMarker from "./MouseTileMarker";
 import TILES from "./TileMapping";
-import ChunkManager, { TILE_SIZE } from "./ChunkManager";
+import MapLoader, { TILE_SIZE } from "./MapLoader";
 
 /**
  * A class that extends Phaser.Scene and wraps up the core logic for the platformer level.
@@ -14,7 +14,8 @@ export default class Game extends Phaser.Scene {
   marker!: MouseTileMarker;
   spikeGroup!: Phaser.Physics.Arcade.StaticGroup;
   particles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
-  chunkManager!: ChunkManager;
+  mapLoader!: MapLoader;
+  depthText!: Phaser.GameObjects.Text;
 
   public static GNOME_IMAGE = "voxel_gnome";
   public static TILE_SPRITESHEET = "voxel_tiles";
@@ -60,17 +61,22 @@ export default class Game extends Phaser.Scene {
     // const [width, height] = [1280, 1280];
     const [width, height] = [5120, 7168];
 
-    this.chunkManager = new ChunkManager(this, width, height);
+    this.mapLoader = new MapLoader(this, width, height);
     this.player = new Player(this, width / 2 + TILE_SIZE / 2, 0);
-    this.chunkManager.onChunkCreated((chunk) => {
-      chunk.collideWith(this.player.sprite);
-    });
+    this.physics.add.collider(this.player.sprite, this.mapLoader.layer);
 
-    camera.setBounds(0, 0, this.chunkManager.map.widthInPixels, 100_000_000);
+    camera.setBounds(0, 0, width, 100_000_000);
     camera.startFollow(this.player.sprite);
 
     // this.marker = new MouseTileMarker(this, this.chunkManager.map);
     this.particles = this.add.particles(Game.PARTICLE_SPRITESHEET);
+    this.depthText = this.add
+      .text(20, 20, "Hole Depth: 0m", {
+        fontSize: "32px",
+        fill: "#000",
+      })
+      .setDepth(100)
+      .setScrollFactor(0);
   }
 
   // canDig(worldX, worldY): boolean {
@@ -102,12 +108,12 @@ export default class Game extends Phaser.Scene {
     // world-wrapping
     if (this.player.sprite.x < this.cameras.main.width / 2) {
       this.player.sprite.setX(
-        this.chunkManager.width - this.cameras.main.width / 2
+        this.mapLoader.width - this.cameras.main.width / 2
       );
     }
     if (
       this.player.sprite.x >
-      this.chunkManager.width - this.cameras.main.width / 2
+      this.mapLoader.width - this.cameras.main.width / 2
     ) {
       this.player.sprite.setX(this.cameras.main.width / 2);
     }
@@ -118,7 +124,9 @@ export default class Game extends Phaser.Scene {
       camera.width,
       camera.height
     );
-    this.chunkManager.update(viewport);
+    this.mapLoader.update(viewport);
+    this.depthText.setText(`Hole Depth: ${this.mapLoader.holeDepth()}m`);
+    // this.chunkManager.update(viewport);
     // this.marker.update();
     const pointer = this.input.activePointer;
     if (pointer.isDown && time - this.lastDug > 500 /* millis */) {
@@ -126,7 +134,7 @@ export default class Game extends Phaser.Scene {
       const worldPoint = pointer.positionToCamera(
         camera
       ) as Phaser.Math.Vector2;
-      const tilePoint = this.chunkManager.worldToTileXY(
+      const tilePoint = this.mapLoader.worldToTileXY(
         worldPoint.x,
         worldPoint.y
       );
@@ -136,19 +144,30 @@ export default class Game extends Phaser.Scene {
           tilePoint.y,
         ]}`
       );
-      const tileToDestroy = this.chunkManager.getTileAtWorldXY(
+
+      const playerTile = this.mapLoader.worldToTileXY(
+        this.player.sprite.x,
+        this.player.sprite.y
+      );
+      const clickedTile = this.mapLoader.worldToTileXY(
         worldPoint.x,
         worldPoint.y
       );
-      if (tileToDestroy.collides && !this.hasDirt) {
-        const tile = this.chunkManager.putTileAtWorldXY(
-          this.chunkManager.digTileFor(worldPoint.x, worldPoint.y),
-          worldPoint.x,
-          worldPoint.y
-        );
-        tile.setCollision(false);
-        const cam = this.cameras.main;
-        cam.shake(20, 0.005);
+
+      if (
+        Math.abs(playerTile.x - clickedTile.x) > 1 ||
+        Math.abs(playerTile.y - clickedTile.y) > 1 ||
+        (playerTile.x == clickedTile.x && clickedTile.y == playerTile.y - 1)
+      ) {
+        return;
+      }
+
+      if (
+        this.mapLoader.canDigAtWorldXY(worldPoint.x, worldPoint.y) &&
+        !this.hasDirt
+      ) {
+        this.mapLoader.digTileAtWorldXY(worldPoint.x, worldPoint.y);
+        this.cameras.main.shake(20, 0.005);
 
         this.particles
           .createEmitter({
@@ -161,14 +180,15 @@ export default class Game extends Phaser.Scene {
           })
           .explode(10, worldPoint.x, worldPoint.y);
         this.hasDirt = true;
-      } else if (!tileToDestroy.collides && this.hasDirt) {
-        const tile = this.chunkManager.putTileAtWorldXY(
-          this.chunkManager.fillTileFor(worldPoint.x, worldPoint.y),
-          worldPoint.x,
-          worldPoint.y
-        );
-        tile.setCollision(true);
+      } else if (
+        this.mapLoader.canUnDigAtWorldXY(worldPoint.x, worldPoint.y) &&
+        this.hasDirt
+      ) {
+        this.mapLoader.unDigTileAtWorldXY(worldPoint.x, worldPoint.y);
         this.hasDirt = false;
+        if (playerTile.equals(clickedTile)) {
+          this.player.sprite.setVelocityY(-600);
+        }
       }
     }
   }

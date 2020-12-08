@@ -102,7 +102,7 @@ export default class Player {
   update() {
     const { keys, sprite } = this;
 
-    // temporary logic to make debugging easier
+    // // temporary logic to make debugging easier
     // if (keys.left.isDown) {
     //   sprite.setVelocityX(-1000);
     // } else if (keys.right.isDown) {
