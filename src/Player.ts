@@ -17,6 +17,10 @@ export default class Player {
     right: Phaser.Input.Keyboard.Key;
     up: Phaser.Input.Keyboard.Key;
     down: Phaser.Input.Keyboard.Key;
+    w: Phaser.Input.Keyboard.Key;
+    a: Phaser.Input.Keyboard.Key;
+    s: Phaser.Input.Keyboard.Key;
+    d: Phaser.Input.Keyboard.Key;
   };
   debugGraphics: Phaser.GameObjects.Graphics;
 
@@ -83,12 +87,25 @@ export default class Player {
     this.sprite.setScale(0.8).setDrag(1000, 0).setMaxVelocity(1000, 2000);
 
     // Track the arrow keys
-    const { LEFT, RIGHT, UP, DOWN } = Phaser.Input.Keyboard.KeyCodes;
+    const {
+      LEFT,
+      RIGHT,
+      UP,
+      DOWN,
+      W,
+      A,
+      S,
+      D,
+    } = Phaser.Input.Keyboard.KeyCodes;
     this.keys = scene.input.keyboard.addKeys({
       left: LEFT,
       right: RIGHT,
       up: UP,
       down: DOWN,
+      w: W,
+      a: A,
+      s: S,
+      D: D,
     }) as any;
   }
 
@@ -126,10 +143,10 @@ export default class Player {
     const acceleration = onGround ? 1200 : 900;
 
     // Apply horizontal acceleration when left/a or right/d are applied
-    if (keys.left.isDown) {
+    if (keys.left.isDown || keys.a.isDown) {
       this.sprite.setAccelerationX(-acceleration);
       this.flip(true);
-    } else if (keys.right.isDown) {
+    } else if (keys.right.isDown || keys.d.isDown) {
       this.sprite.setAccelerationX(acceleration);
       this.flip(false);
     } else {
@@ -137,7 +154,7 @@ export default class Player {
     }
 
     // Only allow the player to jump if they are on the ground
-    if (onGround && keys.up.isDown) {
+    if (onGround && (keys.up.isDown || keys.w.isDown)) {
       this.sprite.setVelocityY(-600);
     }
 
