@@ -26,65 +26,11 @@ export default class Player {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.scene = scene;
-
-    // Create the animations we need from the player spritesheet
-    const anims = scene.anims;
-    // anims.create({
-    //   key: "player-idle",
-    //   frames: anims.generateFrameNumbers("player", { start: 0, end: 3 }),
-    //   frameRate: 3,
-    //   repeat: -1,
-    // });
-    // anims.create({
-    //   key: "player-run",
-    //   frames: anims.generateFrameNumbers("player", { start: 8, end: 15 }),
-    //   frameRate: 12,
-    //   repeat: -1,
-    // });
-
-    // Create the physics-based sprite that we will move around and animate
-
     this.debugGraphics = scene.add.graphics();
 
     this.sprite = scene.physics.add.sprite(x, y, Game.GNOME_IMAGE);
 
-    // const head = scene.add.image(
-    //   0,
-    //   0,
-    //   Game.PLAYER_SPRITESHEET,
-    //   "gnome_head.png"
-    // );
-    // const body = scene.add.image(
-    //   0,
-    //   42,
-    //   Game.PLAYER_SPRITESHEET,
-    //   "gnome_body.png"
-    // );
-    // const leg = scene.add.image(
-    //   0,
-    //   58,
-    //   Game.PLAYER_SPRITESHEET,
-    //   "gnome_leg.png"
-    // );
-    // const arm = scene.add.image(
-    //   14,
-    //   45,
-    //   Game.PLAYER_SPRITESHEET,
-    //   "gnome_arm.png"
-    // );
-    // const shovel = scene.add
-    //   .image(-3, 42, Game.ITEM_SPRITESHEET, "shovel_iron.png")
-    //   .setScale(-0.5, 0.5); // shovel is flipped
-
-    // this.container = scene.add.container(x, y, [leg, body, head, shovel, arm]);
-
-    // //  A Container has a default size of 0x0, so we need to give it a size before enabling a physics
-    // //  body or it'll be given the default body size of 64x64.
-    // this.container.setSize(42, 120);
-
-    // scene.physics.world.enable(this.container);
-
-    this.sprite.setScale(0.8).setDrag(1000, 0).setMaxVelocity(1000, 2000);
+    this.sprite.setScale(0.8).setDrag(5000, 0).setMaxVelocity(1000, 2000);
 
     // Track the arrow keys
     const {
@@ -140,7 +86,7 @@ export default class Player {
     // return;
 
     const onGround = this.sprite.body.blocked.down;
-    const acceleration = onGround ? 1200 : 900;
+    const acceleration = 3000;
 
     // Apply horizontal acceleration when left/a or right/d are applied
     if (keys.left.isDown || keys.a.isDown) {
@@ -155,22 +101,15 @@ export default class Player {
 
     // Only allow the player to jump if they are on the ground
     if (onGround && (keys.up.isDown || keys.w.isDown)) {
-      this.sprite.setVelocityY(-600);
+      this.jump();
     }
-
-    // Update the animation/texture based on the state of the player
-    // if (onGround) {
-    //   if (sprite.body.velocity.x !== 0) sprite.anims.play("player-run", true);
-    //   else sprite.anims.play("player-idle", true);
-    // } else {
-    //   sprite.anims.stop();
-    //   sprite.setTexture("player", 10);
-    // }
-
-    // this.sprite.body.drawDebug(this.debugGraphics);
   }
 
-  flip(flipped) {
+  jump() {
+    this.sprite.setVelocityY(-750);
+  }
+
+  private flip(flipped) {
     this.sprite.setFlipX(flipped);
   }
 

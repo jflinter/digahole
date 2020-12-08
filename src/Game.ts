@@ -187,7 +187,7 @@ export default class Game extends Phaser.Scene {
         this.mapLoader.unDigTileAtWorldXY(worldPoint.x, worldPoint.y);
         this.hasDirt = false;
         if (playerTile.equals(clickedTile)) {
-          this.player.sprite.setVelocityY(-600);
+          this.player.jump();
         }
       }
     }
