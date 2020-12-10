@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import _ from "lodash";
 
 import Player from "./Player";
+import PersistentStore from "./PersistentStore";
 import MouseTileMarker from "./MouseTileMarker";
 import TILES from "./TileMapping";
 import MapLoader, { TILE_SIZE } from "./MapLoader";
@@ -53,15 +54,13 @@ export default class Game extends Phaser.Scene {
   }
 
   create() {
+    const store = PersistentStore.shared();
+    this.physics.world.setFPS(120);
     const camera = this.cameras.main;
 
-    // hard-coding a large window for now.
-    // const width = 5120;
-    // const height = 7168;
-    // const [width, height] = [1280, 1280];
     const [width, height] = [5120, 7168];
 
-    this.mapLoader = new MapLoader(this, width, height);
+    this.mapLoader = new MapLoader(this, store.getRandomSeed(), width, height);
     this.player = new Player(this, width / 2 + TILE_SIZE / 2, 0);
     this.physics.add.collider(this.player.sprite, this.mapLoader.layer);
 
@@ -71,7 +70,7 @@ export default class Game extends Phaser.Scene {
     // this.marker = new MouseTileMarker(this, this.chunkManager.map);
     this.particles = this.add.particles(Game.PARTICLE_SPRITESHEET);
     this.depthText = this.add
-      .text(20, 20, "Hole Depth: 0m", {
+      .text(20, 20, `Hole Depth: ${this.mapLoader.holeDepth()}m`, {
         fontSize: "32px",
         fill: "#000",
       })
@@ -125,7 +124,6 @@ export default class Game extends Phaser.Scene {
       camera.height
     );
     this.mapLoader.update(viewport);
-    this.depthText.setText(`Hole Depth: ${this.mapLoader.holeDepth()}m`);
     // this.chunkManager.update(viewport);
     // this.marker.update();
     const pointer = this.input.activePointer;
@@ -154,10 +152,15 @@ export default class Game extends Phaser.Scene {
         worldPoint.y
       );
 
+      const abovePlayer = playerTile
+        .clone()
+        .add(new Phaser.Math.Vector2(0, -1));
+
       if (
         Math.abs(playerTile.x - clickedTile.x) > 1 ||
         Math.abs(playerTile.y - clickedTile.y) > 1 ||
-        (playerTile.x == clickedTile.x && clickedTile.y == playerTile.y - 1)
+        (_.isEqual(playerTile, clickedTile) &&
+          this.mapLoader.canDigAtTile(abovePlayer))
       ) {
         return;
       }
@@ -180,12 +183,14 @@ export default class Game extends Phaser.Scene {
           })
           .explode(10, worldPoint.x, worldPoint.y);
         this.hasDirt = true;
+        this.depthText.setText(`Hole Depth: ${this.mapLoader.holeDepth()}m`);
       } else if (
         this.mapLoader.canUnDigAtWorldXY(worldPoint.x, worldPoint.y) &&
         this.hasDirt
       ) {
         this.mapLoader.unDigTileAtWorldXY(worldPoint.x, worldPoint.y);
         this.hasDirt = false;
+        this.depthText.setText(`Hole Depth: ${this.mapLoader.holeDepth()}m`);
         if (playerTile.equals(clickedTile)) {
           this.player.jump();
         }

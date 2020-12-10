@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 
 import Game from "./Game";
+import PersistentStore from "./PersistentStore";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -15,14 +16,16 @@ const config: Phaser.Types.Core.GameConfig = {
     default: "arcade",
     arcade: {
       gravity: {
-        y: 1700,
+        y: 2000,
       },
     },
   },
 };
 
-const game = new Phaser.Game(config);
-window.addEventListener("resize", () => {
-  game.scale.resize(window.innerWidth, window.innerHeight);
-});
-export default game;
+(async () => {
+  await PersistentStore.initialize();
+  const game = new Phaser.Game(config);
+  window.addEventListener("resize", () => {
+    game.scale.resize(window.innerWidth, window.innerHeight);
+  });
+})();

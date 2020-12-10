@@ -106,7 +106,7 @@ export default class Player {
   }
 
   jump() {
-    this.sprite.setVelocityY(-750);
+    this.sprite.setVelocityY(-800);
   }
 
   private flip(flipped) {
