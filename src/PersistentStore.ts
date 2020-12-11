@@ -2,22 +2,25 @@ import localforage from "localforage";
 import Chance from "chance";
 import { Mutex } from "async-mutex";
 
+const RANDOM_SEED_KEY = "random_seed";
+const CHANGES_KEY = "changes";
+
+export enum Change {
+  DELETE,
+  PLACE_DIRT,
+}
+
 /**
  * Stores things
  */
 export default class PersistentStore {
-  private static RANDOM_SEED_KEY = "random_seed";
-  private static DIGS_KEY = "digs";
-  private static UNDIGS_KEY = "undigs";
   private static instance: PersistentStore;
-  private digs: Set<integer>;
-  private unDigs: Set<integer>;
+  private changes: Map<integer, Change>;
   private randomSeed: integer;
   private mutex = new Mutex();
 
-  private constructor(digs: integer[], unDigs: integer[], randomSeed) {
-    this.digs = new Set(digs);
-    this.unDigs = new Set(unDigs);
+  private constructor(changes: Map<integer, Change>, randomSeed) {
+    this.changes = changes;
     this.randomSeed = randomSeed;
   }
 
@@ -27,49 +30,34 @@ export default class PersistentStore {
 
   public static async initialize(): Promise<PersistentStore> {
     const chance = new Chance();
-    let randomSeed = await localforage.getItem(PersistentStore.RANDOM_SEED_KEY);
+    let randomSeed = await localforage.getItem(RANDOM_SEED_KEY);
     if (!randomSeed) {
       randomSeed = chance.integer({ min: 0 });
-      await localforage.setItem(PersistentStore.RANDOM_SEED_KEY, randomSeed);
+      await localforage.setItem(RANDOM_SEED_KEY, randomSeed);
     }
-    let digs: integer[] =
-      (await localforage.getItem(PersistentStore.DIGS_KEY)) || [];
-    let unDigs: integer[] =
-      (await localforage.getItem(PersistentStore.UNDIGS_KEY)) || [];
-    PersistentStore.instance = new PersistentStore(digs, unDigs, randomSeed);
+    let changes: [integer, Change][] =
+      (await localforage.getItem(CHANGES_KEY)) || [];
+    PersistentStore.instance = new PersistentStore(
+      new Map(changes),
+      randomSeed
+    );
     console.log(`random seed: ${randomSeed}`);
     return PersistentStore.instance;
   }
 
-  addDig(idx: integer) {
-    this.digs.add(idx);
-    this.unDigs.delete(idx);
+  addChange(idx: integer, type: Change) {
+    this.changes.set(idx, type);
     this.sync();
   }
 
-  getDigs(): Set<integer> {
-    return this.digs;
-  }
-
-  addUnDig(idx: integer) {
-    this.unDigs.add(idx);
-    this.digs.delete(idx);
-    this.sync();
-  }
-
-  getUnDigs(): Set<integer> {
-    return this.unDigs;
+  getChanges(): Map<integer, Change> {
+    return this.changes;
   }
 
   async sync() {
     const release = await this.mutex.acquire();
     try {
-      await localforage.setItem(PersistentStore.DIGS_KEY, [
-        ...this.digs.values(),
-      ]);
-      await localforage.setItem(PersistentStore.UNDIGS_KEY, [
-        ...this.unDigs.values(),
-      ]);
+      await localforage.setItem(CHANGES_KEY, [...this.changes]);
       console.log("sync complete");
     } finally {
       release();

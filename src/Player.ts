@@ -3,6 +3,8 @@ import _ from "lodash";
 
 import Game from "./Game";
 
+const GNOME_IMAGE = "voxel_gnome";
+
 /**
  * A class that wraps up our 2D platforming player logic. It creates, animates and moves a sprite in
  * response to arrow keys. Call its update method from the scene's update and call its destroy
@@ -24,11 +26,15 @@ export default class Player {
   };
   debugGraphics: Phaser.GameObjects.Graphics;
 
+  public static preload(scene: Phaser.Scene) {
+    scene.load.image(GNOME_IMAGE, "assets/images/gnome.png");
+  }
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.scene = scene;
     this.debugGraphics = scene.add.graphics();
 
-    this.sprite = scene.physics.add.sprite(x, y, Game.GNOME_IMAGE);
+    this.sprite = scene.physics.add.sprite(x, y, GNOME_IMAGE);
 
     this.sprite.setScale(0.8).setDrag(5000, 0).setMaxVelocity(1000, 2000);
 

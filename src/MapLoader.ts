@@ -1,14 +1,17 @@
 import Phaser, { Tilemaps } from "phaser";
 import _, { create, xor } from "lodash";
-import TILES from "./TileMapping";
 import Chance from "chance";
-import PersistentStore from "./PersistentStore";
+
+import { TileKey } from "./TileKey";
+import PersistentStore, { Change } from "./PersistentStore";
+import absurd from "./absurd";
 
 export const TILE_SIZE = 128;
-const TILE_SPRITESHEET = "voxel_tiles";
 const SKY_HEIGHT_TILES = 4;
 const CHUNK_SIZE = 1024;
 const CHUNK_TILE_SCALE = CHUNK_SIZE / TILE_SIZE;
+
+const TILE_SPRITESHEET = "voxel_tiles";
 
 type Rectangle = Phaser.Geom.Rectangle;
 const Rectangle = Phaser.Geom.Rectangle;
@@ -24,6 +27,19 @@ export default class MapLoader {
   layer: Tilemaps.DynamicTilemapLayer;
   tileCache: Set<integer>;
   private tileMap: integer[];
+
+  public static preload(scene: Phaser.Scene) {
+    scene.load.spritesheet(
+      TILE_SPRITESHEET,
+      "../assets/images/spritesheet_tiles_extruded.png",
+      {
+        frameWidth: 128,
+        frameHeight: 128,
+        margin: 1,
+        spacing: 2,
+      }
+    );
+  }
 
   constructor(
     scene: Phaser.Scene,
@@ -51,31 +67,40 @@ export default class MapLoader {
     this.layer = this.map
       .createBlankDynamicLayer("maploader", tileset)
       .setDepth(-1)
-      .fill(TILES.BLANK)
-      // .fill(TILES.GRASS, 0, SKY_HEIGHT_TILES, this.map.width, 1)
+      .fill(TileKey.BLANK)
+      // .fill(TileKey.GRASS, 0, SKY_HEIGHT_TILES, this.map.width, 1)
       // .weightedRandomize(
       //   0,
       //   SKY_HEIGHT_TILES + 1,
       //   undefined,
       //   undefined,
-      //   TILES.DIRT
+      //   TileKey.DIRT
       // )
-      .setCollisionByExclusion([TILES.BLUE, TILES.BLANK, TILES.STONE]);
+      .setCollisionByExclusion([TileKey.BLUE, TileKey.BLANK, TileKey.STONE]);
     this.tileCache = new Set();
-    for (let idx of PersistentStore.shared().getDigs()) {
-      this.digTile(this.tileXYFromIndex(idx), false);
-    }
-    for (let idx of PersistentStore.shared().getUnDigs()) {
-      this.unDigTile(this.tileXYFromIndex(idx), false);
-    }
+    PersistentStore.shared()
+      .getChanges()
+      .forEach((change, idx) => {
+        switch (change) {
+          case Change.DELETE:
+            this.digTile(this.tileXYFromIndex(idx), false);
+            break;
+          case Change.PLACE_DIRT:
+            this.unDigTile(this.tileXYFromIndex(idx), false);
+            break;
+          default:
+            absurd(change);
+        }
+      });
 
     // hack: generate a large array to prevent repeats in the tile array
     // there is definitely a better way to do this
     this.tileMap = new Chance(
       PersistentStore.shared().getRandomSeed()
     ).shuffle([
-      ...Array(900).fill(TILES.DIRT[0].index),
-      ...Array(100).fill(TILES.DIRT[1].index),
+      ...Array(700).fill(TileKey.DIRT),
+      ...Array(200).fill(TileKey.SANDY_DIRT),
+      ...Array(200).fill(TileKey.LIGHT_STONE),
     ]);
   }
 
@@ -133,8 +158,7 @@ export default class MapLoader {
     for (let idx of this.tileCache) {
       if (
         !ids.includes(idx) &&
-        !PersistentStore.shared().getDigs().has(idx) &&
-        !PersistentStore.shared().getUnDigs().has(idx)
+        !PersistentStore.shared().getChanges().has(idx)
       ) {
         this.removeTile(idx);
       }
@@ -167,12 +191,12 @@ export default class MapLoader {
   };
 
   holeDepth(): number {
-    const points: [number, number][] = [
-      ...PersistentStore.shared().getDigs().values(),
-    ].map((idx) => {
-      let xy = this.tileXYFromIndex(idx);
-      return [xy.x, xy.y];
-    });
+    const points: [number, number][] = _.compact(
+      [...PersistentStore.shared().getChanges()].map(([idx, change]) => {
+        let xy = this.tileXYFromIndex(idx);
+        return change == Change.DELETE ? [xy.x, xy.y] : null;
+      })
+    );
     const islands = this.holeIslands(points);
     const atSurface = _.filter(islands, (island) =>
       island.map((p) => p[1]).includes(SKY_HEIGHT_TILES)
@@ -184,25 +208,21 @@ export default class MapLoader {
 
   private createTile(idx): Phaser.Tilemaps.Tile {
     const xy = this.tileXYFromIndex(idx);
-    let [tileType, collides] = this.tileConfigAtTileXY(xy);
+    let tileType = this.tileTypeAtTileXY(xy);
     const tile = this.map.putTileAt(tileType, xy.x, xy.y);
-    tile.setCollision(collides);
+    tile.setCollision(TileKey.collides(tileType));
     this.tileCache.add(idx);
     return tile;
   }
 
-  private tileConfigAtTileXY(vector: Vector) {
-    let tileType, collides;
+  private tileTypeAtTileXY(vector: Vector): TileKey {
     if (vector.y < SKY_HEIGHT_TILES) {
-      tileType = TILES.BLANK;
+      return TileKey.BLANK;
     } else if (vector.y === SKY_HEIGHT_TILES) {
-      tileType = TILES.GRASS;
-      collides = true;
+      return TileKey.GRASS;
     } else {
-      tileType = this.tileMap[this.indexForTile(vector) % this.tileMap.length];
-      collides = true;
+      return this.tileMap[this.indexForTile(vector) % this.tileMap.length];
     }
-    return [tileType, collides];
   }
 
   getTileAtWorldXY(x: number, y: number): Phaser.Tilemaps.Tile {
@@ -211,15 +231,22 @@ export default class MapLoader {
 
   canDigAtTile(vector: Vector): boolean {
     const tile = this.map.getTileAt(vector.x, vector.y);
-    return tile.collides;
+    const tileKey = tile.index as TileKey;
+    return TileKey.destructible(tileKey);
   }
 
   canDigAtWorldXY(x: number, y: number): boolean {
     return this.canDigAtTile(this.worldToTileXY(x, y));
   }
 
+  canUndigAtTile(vector: Vector): boolean {
+    const tile = this.map.getTileAt(vector.x, vector.y);
+    const tileKey = tile.index as TileKey;
+    return TileKey.placeable(tileKey);
+  }
+
   canUnDigAtWorldXY(x: number, y: number): boolean {
-    return !this.canDigAtTile(this.worldToTileXY(x, y));
+    return this.canUndigAtTile(this.worldToTileXY(x, y));
   }
 
   digTileAtWorldXY(x: number, y: number): void {
@@ -230,9 +257,9 @@ export default class MapLoader {
 
   private digTile(xy: Vector, store = true): void {
     if (store) {
-      PersistentStore.shared().addDig(this.indexForTile(xy));
+      PersistentStore.shared().addChange(this.indexForTile(xy), Change.DELETE);
     }
-    const tileType = xy.y < SKY_HEIGHT_TILES ? TILES.BLANK : TILES.STONE;
+    const tileType = xy.y < SKY_HEIGHT_TILES ? TileKey.BLANK : TileKey.STONE;
     this.tileCache.add(this.indexForTile(xy));
     this.putTileAt(tileType, xy, false);
   }
@@ -245,10 +272,13 @@ export default class MapLoader {
 
   private unDigTile(xy: Vector, store = true): void {
     if (store) {
-      PersistentStore.shared().addUnDig(this.indexForTile(xy));
+      PersistentStore.shared().addChange(
+        this.indexForTile(xy),
+        Change.PLACE_DIRT
+      );
     }
     this.tileCache.add(this.indexForTile(xy));
-    this.putTileAt(TILES.DIRT[0].index, xy, true);
+    this.putTileAt(TileKey.DIRT, xy, true);
   }
 
   private putTileAt(type, vec, collides): Phaser.Tilemaps.Tile {
