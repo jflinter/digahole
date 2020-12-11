@@ -77,16 +77,11 @@ export default class Game extends Phaser.Scene {
   update(time: number, delta: number) {
     this.player.update();
     // world-wrapping
-    if (this.player.sprite.x < this.cameras.main.width / 2) {
-      this.player.sprite.setX(
-        this.mapLoader.width - this.cameras.main.width / 2
-      );
+    if (this.player.sprite.x < 0) {
+      this.player.sprite.setX(this.mapLoader.width - this.player.sprite.width);
     }
-    if (
-      this.player.sprite.x >
-      this.mapLoader.width - this.cameras.main.width / 2
-    ) {
-      this.player.sprite.setX(this.cameras.main.width / 2);
+    if (this.player.sprite.x > this.mapLoader.width) {
+      this.player.sprite.setX(0);
     }
     const camera = this.cameras.main;
     const viewport = new Phaser.Geom.Rectangle(
