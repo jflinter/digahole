@@ -70,20 +70,26 @@ export default class MapLoader {
       .fill(TileKey.BLANK)
       .setCollisionByExclusion([TileKey.BLUE, TileKey.BLANK, TileKey.STONE]);
     this.tileCache = new Set();
-    PersistentStore.shared()
-      .getChanges()
-      .forEach((change, idx) => {
-        switch (change) {
-          case Change.DELETE:
-            this.digTile(this.tileXYFromIndex(idx), false);
-            break;
-          case Change.PLACE_DIRT:
-            this.unDigTile(this.tileXYFromIndex(idx), false);
-            break;
-          default:
-            absurd(change);
-        }
-      });
+    let changes = PersistentStore.shared().getChanges();
+    changes.forEach((change, idx) => {
+      switch (change) {
+        case Change.DELETE:
+          this.digTile(this.tileXYFromIndex(idx), false);
+          break;
+        case Change.PLACE_DIRT:
+          this.unDigTile(this.tileXYFromIndex(idx), TileKey.DIRT, false);
+          break;
+        case Change.PLACE_MUSHROOM:
+          this.unDigTile(
+            this.tileXYFromIndex(idx),
+            TileKey.STONE_WITH_MUSHROOM,
+            false
+          );
+          break;
+        default:
+          absurd(change);
+      }
+    });
 
     // hack: generate a large array to prevent repeats in the tile array
     // there is definitely a better way to do this
@@ -232,11 +238,7 @@ export default class MapLoader {
   private createTile(idx): Phaser.Tilemaps.Tile {
     const xy = this.tileXYFromIndex(idx);
     let tileType = this.tileTypeAtTileXY(xy);
-    const tile = this.map.putTileAt(tileType, xy.x, xy.y);
-    if (tileType == TileKey.STONE_WITH_MUSHROOM) {
-      tile.setCollisionCallback(MapLoader.onMushroom, {});
-    }
-    tile.setCollision(TileKey.collides(tileType));
+    const tile = this.putTileAt(tileType, xy);
     this.tileCache.add(idx);
     return tile;
   }
@@ -259,6 +261,7 @@ export default class MapLoader {
 
   canDigAtTile(vector: Vector): boolean {
     const tile = this.map.getTileAt(vector.x, vector.y);
+    if (!tile) return false;
     const tileKey = tile.index as TileKey;
     return TileKey.destructible(tileKey);
   }
@@ -269,6 +272,7 @@ export default class MapLoader {
 
   canUndigAtTile(vector: Vector): boolean {
     const tile = this.map.getTileAt(vector.x, vector.y);
+    if (!tile) return false;
     const tileKey = tile.index as TileKey;
     return TileKey.placeable(tileKey);
   }
@@ -277,42 +281,46 @@ export default class MapLoader {
     return this.canUndigAtTile(this.worldToTileXY(x, y));
   }
 
-  digTileAtWorldXY(x: number, y: number): void {
-    if (this.canDigAtWorldXY(x, y)) {
-      this.digTile(this.worldToTileXY(x, y));
-    }
+  digTileAtWorldXY(x: number, y: number): Tilemaps.Tile {
+    return this.digTile(this.worldToTileXY(x, y));
   }
 
-  private digTile(xy: Vector, store = true): void {
+  private digTile(xy: Vector, store = true): Tilemaps.Tile {
     if (store) {
       PersistentStore.shared().addChange(this.indexForTile(xy), Change.DELETE);
     }
     const tileType = xy.y < SKY_HEIGHT_TILES ? TileKey.BLANK : TileKey.STONE;
     this.tileCache.add(this.indexForTile(xy));
-    this.putTileAt(tileType, xy, false);
+    return this.putTileAt(tileType, xy);
   }
 
-  unDigTileAtWorldXY(x: number, y: number): void {
-    if (this.canUnDigAtWorldXY(x, y)) {
-      this.unDigTile(this.worldToTileXY(x, y));
-    }
+  unDigTileAtWorldXY(x: number, y: number, type: TileKey): void {
+    this.unDigTile(this.worldToTileXY(x, y), type);
   }
 
-  private unDigTile(xy: Vector, store = true): void {
+  private unDigTile(xy: Vector, type: TileKey, store = true): void {
     if (store) {
       PersistentStore.shared().addChange(
         this.indexForTile(xy),
-        Change.PLACE_DIRT
+        type == TileKey.STONE_WITH_MUSHROOM
+          ? Change.PLACE_MUSHROOM
+          : Change.PLACE_DIRT
       );
     }
     this.tileCache.add(this.indexForTile(xy));
-    this.putTileAt(TileKey.DIRT, xy, true);
+    this.putTileAt(type, xy);
   }
 
-  private putTileAt(type, vec, collides): Phaser.Tilemaps.Tile {
+  private putTileAt(tileType: TileKey, vec: Vector): Phaser.Tilemaps.Tile {
     const idx = this.indexForTile(vec);
-    this.map.getTileAt(vec.x, vec.y).destroy();
-    return this.map.putTileAt(type, vec.x, vec.y).setCollision(collides);
+    this.map.getTileAt(vec.x, vec.y)?.destroy();
+    const tile = this.map
+      .putTileAt(tileType, vec.x, vec.y)
+      .setCollision(TileKey.collides(tileType));
+    if (tileType == TileKey.STONE_WITH_MUSHROOM) {
+      tile.setCollisionCallback(MapLoader.onMushroom, {});
+    }
+    return tile;
   }
 
   worldToTileXY(x: number, y: number): Vector {

@@ -6,8 +6,9 @@ const RANDOM_SEED_KEY = "random_seed";
 const CHANGES_KEY = "changes";
 
 export enum Change {
-  DELETE,
-  PLACE_DIRT,
+  DELETE = 0,
+  PLACE_DIRT = 1,
+  PLACE_MUSHROOM = 2,
 }
 
 /**

@@ -5,6 +5,7 @@ import Player from "./Player";
 import PersistentStore from "./PersistentStore";
 import MouseTileMarker from "./MouseTileMarker";
 import MapLoader, { TILE_SIZE } from "./MapLoader";
+import { TileKey } from "./TileKey";
 
 const PARTICLE_SPRITESHEET = "voxel_particles";
 
@@ -71,7 +72,7 @@ export default class Game extends Phaser.Scene {
       : "";
   }
 
-  hasDirt: boolean = false;
+  shovelContents?: TileKey = undefined;
   lastDug = 0;
   update(time: number, delta: number) {
     this.player.update();
@@ -137,8 +138,12 @@ export default class Game extends Phaser.Scene {
 
       if (
         this.mapLoader.canDigAtWorldXY(worldPoint.x, worldPoint.y) &&
-        !this.hasDirt
+        !this.shovelContents
       ) {
+        const existingType = this.mapLoader.getTileAtWorldXY(
+          worldPoint.x,
+          worldPoint.y
+        ).index as TileKey;
         this.mapLoader.digTileAtWorldXY(worldPoint.x, worldPoint.y);
         this.cameras.main.shake(20, 0.005);
 
@@ -152,14 +157,18 @@ export default class Game extends Phaser.Scene {
             scale: { start: 1, end: 0 },
           })
           .explode(10, worldPoint.x, worldPoint.y);
-        this.hasDirt = true;
+        this.shovelContents = existingType;
         this.updateText();
       } else if (
         this.mapLoader.canUnDigAtWorldXY(worldPoint.x, worldPoint.y) &&
-        this.hasDirt
+        this.shovelContents
       ) {
-        this.mapLoader.unDigTileAtWorldXY(worldPoint.x, worldPoint.y);
-        this.hasDirt = false;
+        this.mapLoader.unDigTileAtWorldXY(
+          worldPoint.x,
+          worldPoint.y,
+          this.shovelContents
+        );
+        this.shovelContents = undefined;
         this.updateText();
         if (playerTile.equals(clickedTile)) {
           this.player.jump();
