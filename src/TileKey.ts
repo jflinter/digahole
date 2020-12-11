@@ -1,13 +1,14 @@
 import absurd from "./absurd";
 
 export enum TileKey {
-  BLANK = 53,
+  BLANK = 62,
   GRASS = 43,
   DIRT = 52,
   SANDY_DIRT = 6,
   STONE = 68,
   BLUE = 88,
   LIGHT_STONE = 39,
+  STONE_WITH_MUSHROOM = 53,
 }
 
 export namespace TileKey {
@@ -18,6 +19,7 @@ export namespace TileKey {
       case TileKey.SANDY_DIRT:
       case TileKey.LIGHT_STONE:
       case TileKey.BLUE:
+      case TileKey.STONE_WITH_MUSHROOM:
         return true;
       case TileKey.BLANK:
       case TileKey.STONE:
@@ -33,6 +35,7 @@ export namespace TileKey {
       case TileKey.GRASS:
       case TileKey.DIRT:
       case TileKey.SANDY_DIRT:
+      case TileKey.STONE_WITH_MUSHROOM:
         return true;
       case TileKey.BLANK:
       case TileKey.STONE:
@@ -51,6 +54,7 @@ export namespace TileKey {
       case TileKey.STONE:
         return true;
       case TileKey.GRASS:
+      case TileKey.STONE_WITH_MUSHROOM:
       case TileKey.DIRT:
       case TileKey.SANDY_DIRT:
       case TileKey.LIGHT_STONE:

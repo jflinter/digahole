@@ -9,6 +9,10 @@ const config: Phaser.Types.Core.GameConfig = {
   height: window.innerHeight,
   backgroundColor: "#B0E9FC",
   scene: [Game],
+  render: {
+    pixelArt: true,
+    antialiasGL: false,
+  },
   audio: {
     disableWebAudio: true,
   },

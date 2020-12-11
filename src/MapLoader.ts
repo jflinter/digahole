@@ -26,7 +26,7 @@ export default class MapLoader {
   private map: Phaser.Tilemaps.Tilemap;
   layer: Tilemaps.DynamicTilemapLayer;
   tileCache: Set<integer>;
-  private tileMap: integer[];
+  private tileChances: integer[];
 
   public static preload(scene: Phaser.Scene) {
     scene.load.spritesheet(
@@ -68,14 +68,6 @@ export default class MapLoader {
       .createBlankDynamicLayer("maploader", tileset)
       .setDepth(-1)
       .fill(TileKey.BLANK)
-      // .fill(TileKey.GRASS, 0, SKY_HEIGHT_TILES, this.map.width, 1)
-      // .weightedRandomize(
-      //   0,
-      //   SKY_HEIGHT_TILES + 1,
-      //   undefined,
-      //   undefined,
-      //   TileKey.DIRT
-      // )
       .setCollisionByExclusion([TileKey.BLUE, TileKey.BLANK, TileKey.STONE]);
     this.tileCache = new Set();
     PersistentStore.shared()
@@ -95,12 +87,13 @@ export default class MapLoader {
 
     // hack: generate a large array to prevent repeats in the tile array
     // there is definitely a better way to do this
-    this.tileMap = new Chance(
+    this.tileChances = new Chance(
       PersistentStore.shared().getRandomSeed()
     ).shuffle([
       ...Array(700).fill(TileKey.DIRT),
       ...Array(200).fill(TileKey.SANDY_DIRT),
-      ...Array(200).fill(TileKey.LIGHT_STONE),
+      ...Array(130).fill(TileKey.LIGHT_STONE),
+      ...Array(40).fill(TileKey.STONE_WITH_MUSHROOM),
     ]);
   }
 
@@ -190,7 +183,7 @@ export default class MapLoader {
     return islands;
   };
 
-  holeDepth(): number {
+  holeDepth(): [number, boolean] {
     const points: [number, number][] = _.compact(
       [...PersistentStore.shared().getChanges()].map(([idx, change]) => {
         let xy = this.tileXYFromIndex(idx);
@@ -199,17 +192,50 @@ export default class MapLoader {
     );
     const islands = this.holeIslands(points);
     const atSurface = _.filter(islands, (island) =>
-      island.map((p) => p[1]).includes(SKY_HEIGHT_TILES)
+      _.some(island, (p) => p[1] <= SKY_HEIGHT_TILES)
     );
-    return (
-      _.max(_.flatten(atSurface).map((p) => p[1] - SKY_HEIGHT_TILES + 1)) || 0
-    );
+    const depth =
+      _.max(_.flatten(atSurface).map((p) => p[1] - SKY_HEIGHT_TILES + 1)) || 0;
+    return [depth, atSurface.length < islands.length];
+  }
+
+  private static onMushroom(
+    sprite: Phaser.Physics.Arcade.Sprite,
+    collisionTile: Phaser.Tilemaps.Tile,
+    ctx
+  ): boolean {
+    const yDelta =
+      sprite.body.bottom - collisionTile.tilemap.tileToWorldY(collisionTile.y);
+    if (yDelta < 10 && yDelta > 0) {
+      const onDirt =
+        collisionTile.tilemap
+          .getTilesWithinWorldXY(
+            sprite.body.left,
+            sprite.body.bottom,
+            sprite.body.width,
+            1
+          )
+          .filter((t) =>
+            [TileKey.DIRT, TileKey.SANDY_DIRT, TileKey.LIGHT_STONE].includes(
+              t.index
+            )
+          ).length !== 0;
+      if (!onDirt) {
+        sprite.setVelocityY(-1500);
+        collisionTile.tilemap.scene.cameras.main.shake(70, 0.02);
+        return true;
+      }
+    }
+    return false;
   }
 
   private createTile(idx): Phaser.Tilemaps.Tile {
     const xy = this.tileXYFromIndex(idx);
     let tileType = this.tileTypeAtTileXY(xy);
     const tile = this.map.putTileAt(tileType, xy.x, xy.y);
+    if (tileType == TileKey.STONE_WITH_MUSHROOM) {
+      tile.setCollisionCallback(MapLoader.onMushroom, {});
+    }
     tile.setCollision(TileKey.collides(tileType));
     this.tileCache.add(idx);
     return tile;
@@ -221,7 +247,9 @@ export default class MapLoader {
     } else if (vector.y === SKY_HEIGHT_TILES) {
       return TileKey.GRASS;
     } else {
-      return this.tileMap[this.indexForTile(vector) % this.tileMap.length];
+      return this.tileChances[
+        this.indexForTile(vector) % this.tileChances.length
+      ];
     }
   }
 
@@ -283,6 +311,7 @@ export default class MapLoader {
 
   private putTileAt(type, vec, collides): Phaser.Tilemaps.Tile {
     const idx = this.indexForTile(vec);
+    this.map.getTileAt(vec.x, vec.y).destroy();
     return this.map.putTileAt(type, vec.x, vec.y).setCollision(collides);
   }
 

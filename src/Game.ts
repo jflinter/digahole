@@ -18,6 +18,7 @@ export default class Game extends Phaser.Scene {
   particles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
   mapLoader!: MapLoader;
   depthText!: Phaser.GameObjects.Text;
+  subtitleText!: Phaser.GameObjects.Text;
 
   preload() {
     Player.preload(this);
@@ -46,12 +47,28 @@ export default class Game extends Phaser.Scene {
     // this.marker = new MouseTileMarker(this, this.chunkManager.map);
     this.particles = this.add.particles(PARTICLE_SPRITESHEET);
     this.depthText = this.add
-      .text(20, 20, `Hole Depth: ${this.mapLoader.holeDepth()}m`, {
+      .text(20, 20, "", {
         fontSize: "32px",
         fill: "#000",
       })
       .setDepth(100)
       .setScrollFactor(0);
+    this.subtitleText = this.add
+      .text(20, 60, "", {
+        fontSize: "18px",
+        fill: "#000",
+      })
+      .setDepth(100)
+      .setScrollFactor(0);
+    this.updateText();
+  }
+
+  private updateText() {
+    const [depth, hasCaverns] = this.mapLoader.holeDepth();
+    this.depthText.text = `Hole Depth: ${depth}m${hasCaverns ? "*" : ""}`;
+    this.subtitleText.text = hasCaverns
+      ? "* note: depth does not include fully-enclosed caverns"
+      : "";
   }
 
   hasDirt: boolean = false;
@@ -136,14 +153,14 @@ export default class Game extends Phaser.Scene {
           })
           .explode(10, worldPoint.x, worldPoint.y);
         this.hasDirt = true;
-        this.depthText.setText(`Hole Depth: ${this.mapLoader.holeDepth()}m`);
+        this.updateText();
       } else if (
         this.mapLoader.canUnDigAtWorldXY(worldPoint.x, worldPoint.y) &&
         this.hasDirt
       ) {
         this.mapLoader.unDigTileAtWorldXY(worldPoint.x, worldPoint.y);
         this.hasDirt = false;
-        this.depthText.setText(`Hole Depth: ${this.mapLoader.holeDepth()}m`);
+        this.updateText();
         if (playerTile.equals(clickedTile)) {
           this.player.jump();
         }
