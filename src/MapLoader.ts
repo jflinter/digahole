@@ -25,7 +25,6 @@ export default class MapLoader {
   height: integer;
   private map: Phaser.Tilemaps.Tilemap;
   layer: Tilemaps.TilemapLayer;
-  tileCache: Set<integer>;
   private tileChances: integer[];
 
   public static preload(scene: Phaser.Scene) {
@@ -50,6 +49,18 @@ export default class MapLoader {
     this.scene = scene;
     this.width = width;
     this.height = height;
+
+    // hack: generate a large array to prevent repeats in the tile array
+    // there is definitely a better way to do this
+    this.tileChances = new Chance(
+      PersistentStore.shared().getRandomSeed()
+    ).shuffle([
+      ...Array(700).fill(TileKey.DIRT),
+      ...Array(200).fill(TileKey.SANDY_DIRT),
+      ...Array(130).fill(TileKey.LIGHT_STONE),
+      ...Array(40).fill(TileKey.STONE_WITH_MUSHROOM),
+    ]);
+
     this.map = scene.make.tilemap({
       tileWidth: TILE_SIZE,
       tileHeight: TILE_SIZE,
@@ -69,7 +80,10 @@ export default class MapLoader {
       .setDepth(-1)
       .fill(TileKey.BLANK)
       .setCollisionByExclusion([TileKey.BLUE, TileKey.BLANK, TileKey.STONE]);
-    this.tileCache = new Set();
+    const tiles = this.map.getTilesWithin();
+    _.range(0, tiles.length).forEach((i) => {
+      this.createTile(i);
+    });
     let changes = PersistentStore.shared().getChanges();
     changes.forEach((change, idx) => {
       switch (change) {
@@ -90,79 +104,13 @@ export default class MapLoader {
           absurd(change);
       }
     });
-
-    // hack: generate a large array to prevent repeats in the tile array
-    // there is definitely a better way to do this
-    this.tileChances = new Chance(
-      PersistentStore.shared().getRandomSeed()
-    ).shuffle([
-      ...Array(700).fill(TileKey.DIRT),
-      ...Array(200).fill(TileKey.SANDY_DIRT),
-      ...Array(130).fill(TileKey.LIGHT_STONE),
-      ...Array(40).fill(TileKey.STONE_WITH_MUSHROOM),
-    ]);
-  }
-
-  private scaleRect(rect: Rectangle, scale: number): Rectangle {
-    return new Rectangle(
-      rect.centerX - (rect.centerX - rect.x) * scale,
-      rect.centerY - (rect.centerY - rect.y) * scale,
-      rect.width * scale,
-      rect.height * scale
-    );
-  }
-
-  private tileIndicesInWorldRect(rect: Rectangle): integer[] {
-    const xStart = Math.max(Math.floor(this.map.worldToTileX(rect.x)), 0);
-    const yStart = Math.max(Math.floor(this.map.worldToTileY(rect.y)), 0);
-
-    // Bottom right corner of the rect, rounded up to include partial tiles
-    const xEnd = Math.max(
-      Math.min(
-        Math.ceil(this.map.worldToTileX(rect.x + rect.width)),
-        this.width
-      ),
-      0
-    );
-    const yEnd = Math.max(
-      Math.min(
-        Math.ceil(this.map.worldToTileY(rect.y + rect.height)),
-        this.height
-      ),
-      0
-    );
-
-    const cartesian = (...a) =>
-      a.reduce((a, b) => a.flatMap((d) => b.map((e) => _.flatten([d, e]))));
-    const coords = cartesian(
-      _.range(xStart, xEnd + 1),
-      _.range(yStart, yEnd + 1)
-    );
-    return coords.map((c: integer[]) => this.indexForTile(new Vector(...c)));
   }
 
   private indexForTile(vec: Vector): integer {
     return vec.x + this.map.width * vec.y;
   }
 
-  // x and y are in world coordinates
-  update(visibleRect: Rectangle) {
-    const tileWindow = this.scaleRect(visibleRect, 1.2);
-    const ids = this.tileIndicesInWorldRect(tileWindow);
-    _.forEach(ids, (id) => {
-      if (!this.tileCache.has(id)) {
-        this.createTile(id);
-      }
-    });
-    for (let idx of this.tileCache) {
-      if (
-        !ids.includes(idx) &&
-        !PersistentStore.shared().getChanges().has(idx)
-      ) {
-        this.removeTile(idx);
-      }
-    }
-  }
+  update(visibleRect: Rectangle) {}
 
   holeIslands = (xys: [number, number][]) => {
     const islands: [number, number][][] = [];
@@ -239,7 +187,6 @@ export default class MapLoader {
     const xy = this.tileXYFromIndex(idx);
     let tileType = this.tileTypeAtTileXY(xy);
     const tile = this.putTileAt(tileType, xy);
-    this.tileCache.add(idx);
     return tile;
   }
 
@@ -290,7 +237,6 @@ export default class MapLoader {
       PersistentStore.shared().addChange(this.indexForTile(xy), Change.DELETE);
     }
     const tileType = xy.y < SKY_HEIGHT_TILES ? TileKey.BLANK : TileKey.STONE;
-    this.tileCache.add(this.indexForTile(xy));
     return this.putTileAt(tileType, xy);
   }
 
@@ -307,7 +253,6 @@ export default class MapLoader {
           : Change.PLACE_DIRT
       );
     }
-    this.tileCache.add(this.indexForTile(xy));
     this.putTileAt(type, xy);
   }
 
@@ -326,12 +271,6 @@ export default class MapLoader {
   worldToTileXY(x: number, y: number): Vector {
     const xy = this.map.worldToTileXY(x, y);
     return new Vector(xy.x, xy.y);
-  }
-
-  private removeTile(idx) {
-    const xy = this.tileXYFromIndex(idx);
-    this.map.removeTileAt(xy.x, xy.y);
-    this.tileCache.delete(idx);
   }
 
   private tileXYFromIndex(idx: integer): Vector {
