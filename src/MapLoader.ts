@@ -24,7 +24,7 @@ export default class MapLoader {
   width: integer;
   height: integer;
   private map: Phaser.Tilemaps.Tilemap;
-  layer: Tilemaps.DynamicTilemapLayer;
+  layer: Tilemaps.TilemapLayer;
   tileCache: Set<integer>;
   private tileChances: integer[];
 
@@ -65,7 +65,7 @@ export default class MapLoader {
       2
     );
     this.layer = this.map
-      .createBlankDynamicLayer("maploader", tileset)
+      .createBlankLayer("maploader", tileset)
       .setDepth(-1)
       .fill(TileKey.BLANK)
       .setCollisionByExclusion([TileKey.BLUE, TileKey.BLANK, TileKey.STONE]);

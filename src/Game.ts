@@ -50,14 +50,14 @@ export default class Game extends Phaser.Scene {
     this.depthText = this.add
       .text(20, 20, "", {
         fontSize: "32px",
-        fill: "#000",
+        color: "#000",
       })
       .setDepth(100)
       .setScrollFactor(0);
     this.subtitleText = this.add
       .text(20, 60, "", {
         fontSize: "18px",
-        fill: "#000",
+        color: "#000",
       })
       .setDepth(100)
       .setScrollFactor(0);
