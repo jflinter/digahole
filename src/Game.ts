@@ -32,13 +32,12 @@ export default class Game extends Phaser.Scene {
   }
 
   create() {
-    const store = PersistentStore.shared();
     this.physics.world.setFPS(120);
     const camera = this.cameras.main;
 
     const [width, height] = [5120, 7168];
 
-    this.mapLoader = new MapLoader(this, store.getRandomSeed(), width, height);
+    this.mapLoader = new MapLoader(this, width, height);
     this.player = new Player(this, width / 2 + TILE_SIZE / 2, 0);
     this.physics.add.collider(this.player.sprite, this.mapLoader.layer);
 
@@ -66,10 +65,10 @@ export default class Game extends Phaser.Scene {
 
   private updateText() {
     const [depth, hasCaverns] = this.mapLoader.holeDepth();
-    this.depthText.text = `Hole Depth: ${depth}m${hasCaverns ? "*" : ""}`;
-    this.subtitleText.text = hasCaverns
-      ? "* note: depth does not include fully-enclosed caverns"
-      : "";
+    this.depthText.text = `Hole Depth: ${depth}m`;
+    // this.subtitleText.text = hasCaverns
+    // ? "* note: depth does not include fully-enclosed caverns"
+    // : "";
   }
 
   shovelContents?: TileKey = undefined;

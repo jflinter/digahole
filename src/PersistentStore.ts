@@ -2,8 +2,8 @@ import localforage from "localforage";
 import Chance from "chance";
 import { Mutex } from "async-mutex";
 
-const RANDOM_SEED_KEY = "random_seed";
-const CHANGES_KEY = "changes";
+const RANDOM_SEED_KEY = "random_seed_3";
+const CHANGES_KEY = "changes_3";
 
 export enum Change {
   DELETE = 0,

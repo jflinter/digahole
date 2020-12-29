@@ -3,6 +3,7 @@ import _, { create, xor } from "lodash";
 import Chance from "chance";
 
 import { TileKey } from "./TileKey";
+import TileChooser from "./TileChooser";
 import PersistentStore, { Change } from "./PersistentStore";
 import absurd from "./absurd";
 
@@ -25,7 +26,7 @@ export default class MapLoader {
   height: integer;
   private map: Phaser.Tilemaps.Tilemap;
   layer: Tilemaps.TilemapLayer;
-  private tileChances: integer[];
+  private tileChooser: TileChooser;
 
   public static preload(scene: Phaser.Scene) {
     scene.load.spritesheet(
@@ -40,26 +41,13 @@ export default class MapLoader {
     );
   }
 
-  constructor(
-    scene: Phaser.Scene,
-    seed: number,
-    width: integer,
-    height: integer
-  ) {
+  constructor(scene: Phaser.Scene, width: integer, height: integer) {
     this.scene = scene;
     this.width = width;
     this.height = height;
-
-    // hack: generate a large array to prevent repeats in the tile array
-    // there is definitely a better way to do this
-    this.tileChances = new Chance(
-      PersistentStore.shared().getRandomSeed()
-    ).shuffle([
-      ...Array(700).fill(TileKey.DIRT),
-      ...Array(200).fill(TileKey.SANDY_DIRT),
-      ...Array(130).fill(TileKey.LIGHT_STONE),
-      ...Array(40).fill(TileKey.STONE_WITH_MUSHROOM),
-    ]);
+    const widthInTiles = Math.round(width / TILE_SIZE);
+    const heightInTiles = Math.round(width / TILE_SIZE);
+    this.tileChooser = new TileChooser(widthInTiles, heightInTiles);
 
     this.map = scene.make.tilemap({
       tileWidth: TILE_SIZE,
@@ -78,7 +66,6 @@ export default class MapLoader {
     this.layer = this.map
       .createBlankLayer("maploader", tileset)
       .setDepth(-1)
-      .fill(TileKey.BLANK)
       .setCollisionByExclusion([TileKey.BLUE, TileKey.BLANK, TileKey.STONE]);
     const tiles = this.map.getTilesWithin();
     _.range(0, tiles.length).forEach((i) => {
@@ -138,12 +125,9 @@ export default class MapLoader {
   };
 
   holeDepth(): [number, boolean] {
-    const points: [number, number][] = _.compact(
-      [...PersistentStore.shared().getChanges()].map(([idx, change]) => {
-        let xy = this.tileXYFromIndex(idx);
-        return change == Change.DELETE ? [xy.x, xy.y] : null;
-      })
-    );
+    const points: [number, number][] = this.map
+      .filterTiles((t) => t.index === TileKey.STONE)
+      .map((t) => [t.x, t.y]);
     const islands = this.holeIslands(points);
     const atSurface = _.filter(islands, (island) =>
       _.some(island, (p) => p[1] <= SKY_HEIGHT_TILES)
@@ -185,21 +169,9 @@ export default class MapLoader {
 
   private createTile(idx): Phaser.Tilemaps.Tile {
     const xy = this.tileXYFromIndex(idx);
-    let tileType = this.tileTypeAtTileXY(xy);
+    const tileType = this.tileChooser.tileAt(xy.x, xy.y);
     const tile = this.putTileAt(tileType, xy);
     return tile;
-  }
-
-  private tileTypeAtTileXY(vector: Vector): TileKey {
-    if (vector.y < SKY_HEIGHT_TILES) {
-      return TileKey.BLANK;
-    } else if (vector.y === SKY_HEIGHT_TILES) {
-      return TileKey.GRASS;
-    } else {
-      return this.tileChances[
-        this.indexForTile(vector) % this.tileChances.length
-      ];
-    }
   }
 
   getTileAtWorldXY(x: number, y: number): Phaser.Tilemaps.Tile {
