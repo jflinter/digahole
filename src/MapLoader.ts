@@ -24,7 +24,7 @@ export default class MapLoader {
   private scene: Phaser.Scene;
   width: integer;
   height: integer;
-  private map: Phaser.Tilemaps.Tilemap;
+  map: Phaser.Tilemaps.Tilemap;
   layer: Tilemaps.TilemapLayer;
   private tileChooser: TileChooser;
 

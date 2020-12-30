@@ -3,7 +3,7 @@ import _ from "lodash";
 
 import Player from "./Player";
 import PersistentStore from "./PersistentStore";
-import MouseTileMarker from "./MouseTileMarker";
+import ShovelMarker from "./ShovelMarker";
 import MapLoader, { TILE_SIZE } from "./MapLoader";
 import { TileKey } from "./TileKey";
 
@@ -14,7 +14,7 @@ const PARTICLE_SPRITESHEET = "voxel_particles";
  */
 export default class Game extends Phaser.Scene {
   player!: Player;
-  marker!: MouseTileMarker;
+  marker!: ShovelMarker;
   spikeGroup!: Phaser.Physics.Arcade.StaticGroup;
   particles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
   mapLoader!: MapLoader;
@@ -44,8 +44,9 @@ export default class Game extends Phaser.Scene {
     camera.setBounds(0, 0, width, 100_000_000);
     camera.startFollow(this.player.sprite);
 
-    // this.marker = new MouseTileMarker(this, this.chunkManager.map);
+    this.marker = new ShovelMarker(this, this.mapLoader);
     this.particles = this.add.particles(PARTICLE_SPRITESHEET);
+
     this.depthText = this.add
       .text(20, 20, "", {
         fontSize: "32px",
@@ -68,10 +69,32 @@ export default class Game extends Phaser.Scene {
     this.depthText.text = `Hole Depth: ${depth}m`;
   }
 
-  shovelContents?: TileKey = undefined;
+  canActionAtWorldXY(x: integer, y: integer): boolean {
+    const playerTile = this.mapLoader.worldToTileXY(
+      this.player.sprite.x,
+      this.player.sprite.y
+    );
+    const clickedTile = this.mapLoader.worldToTileXY(x, y);
+    const abovePlayer = playerTile.clone().add(new Phaser.Math.Vector2(0, -1));
+    if (
+      Math.abs(playerTile.x - clickedTile.x) > 1 ||
+      Math.abs(playerTile.y - clickedTile.y) > 1 ||
+      (_.isEqual(playerTile, clickedTile) &&
+        this.mapLoader.canDigAtTile(abovePlayer))
+    ) {
+      return false;
+    }
+    if (this.player.shovelContents) {
+      return this.mapLoader.canUnDigAtWorldXY(x, y);
+    } else {
+      return this.mapLoader.canDigAtWorldXY(x, y);
+    }
+  }
+
   lastDug = 0;
   update(time: number, delta: number) {
     this.player.update();
+    this.marker.update();
     // world-wrapping
     if (this.player.sprite.x < 0) {
       this.player.sprite.setX(this.mapLoader.width - this.player.sprite.width);
@@ -105,6 +128,15 @@ export default class Game extends Phaser.Scene {
         ]}`
       );
 
+      if (!this.canActionAtWorldXY(worldPoint.x, worldPoint.y)) {
+        return;
+      }
+
+      const existingType = this.mapLoader.getTileAtWorldXY(
+        worldPoint.x,
+        worldPoint.y
+      ).index as TileKey;
+
       const playerTile = this.mapLoader.worldToTileXY(
         this.player.sprite.x,
         this.player.sprite.y
@@ -114,27 +146,18 @@ export default class Game extends Phaser.Scene {
         worldPoint.y
       );
 
-      const abovePlayer = playerTile
-        .clone()
-        .add(new Phaser.Math.Vector2(0, -1));
-
-      if (
-        Math.abs(playerTile.x - clickedTile.x) > 1 ||
-        Math.abs(playerTile.y - clickedTile.y) > 1 ||
-        (_.isEqual(playerTile, clickedTile) &&
-          this.mapLoader.canDigAtTile(abovePlayer))
-      ) {
-        return;
-      }
-
-      if (
-        this.mapLoader.canDigAtWorldXY(worldPoint.x, worldPoint.y) &&
-        !this.shovelContents
-      ) {
-        const existingType = this.mapLoader.getTileAtWorldXY(
+      if (this.player.shovelContents) {
+        this.mapLoader.unDigTileAtWorldXY(
           worldPoint.x,
-          worldPoint.y
-        ).index as TileKey;
+          worldPoint.y,
+          this.player.shovelContents
+        );
+        this.player.shovelContents = undefined;
+        this.updateText();
+        if (playerTile.equals(clickedTile)) {
+          this.player.jump();
+        }
+      } else {
         this.mapLoader.digTileAtWorldXY(worldPoint.x, worldPoint.y);
         this.cameras.main.shake(20, 0.005);
 
@@ -148,23 +171,10 @@ export default class Game extends Phaser.Scene {
             scale: { start: 1, end: 0 },
           })
           .explode(10, worldPoint.x, worldPoint.y);
-        this.shovelContents = existingType;
-        this.updateText();
-      } else if (
-        this.mapLoader.canUnDigAtWorldXY(worldPoint.x, worldPoint.y) &&
-        this.shovelContents
-      ) {
-        this.mapLoader.unDigTileAtWorldXY(
-          worldPoint.x,
-          worldPoint.y,
-          this.shovelContents
-        );
-        this.shovelContents = undefined;
-        this.updateText();
-        if (playerTile.equals(clickedTile)) {
-          this.player.jump();
-        }
+        this.player.shovelContents = existingType;
       }
+
+      this.updateText();
     }
   }
 }
