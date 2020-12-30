@@ -39,7 +39,7 @@
     "chance": "^1.1.7",
     "localforage": "^1.9.0",
     "lodash": "^4.17.19",
-    "phaser": "^3.24.1"
+    "phaser": "^3.50.1"
   },
   "parcelCleanPaths": [
     "dist"
