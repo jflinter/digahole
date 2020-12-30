@@ -64,11 +64,8 @@ export default class Game extends Phaser.Scene {
   }
 
   private updateText() {
-    const [depth, hasCaverns] = this.mapLoader.holeDepth();
+    const [depth, _hasCaverns] = this.mapLoader.holeDepth();
     this.depthText.text = `Hole Depth: ${depth}m`;
-    // this.subtitleText.text = hasCaverns
-    // ? "* note: depth does not include fully-enclosed caverns"
-    // : "";
   }
 
   shovelContents?: TileKey = undefined;
