@@ -2,7 +2,8 @@ import Phaser from "phaser";
 import _ from "lodash";
 
 import Player from "./Player";
-import PersistentStore from "./PersistentStore";
+import Controls, { CONTROL_SIZE } from "./Controls";
+
 import ShovelMarker from "./ShovelMarker";
 import MapLoader, { TILE_SIZE } from "./MapLoader";
 import { TileKey } from "./TileKey";
@@ -14,7 +15,7 @@ const PARTICLE_SPRITESHEET = "voxel_particles";
  */
 export default class Game extends Phaser.Scene {
   player!: Player;
-  marker!: ShovelMarker;
+  marker?: ShovelMarker;
   spikeGroup!: Phaser.Physics.Arcade.StaticGroup;
   particles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
   mapLoader!: MapLoader;
@@ -38,13 +39,20 @@ export default class Game extends Phaser.Scene {
     const [width, height] = [5120, 7168];
 
     this.mapLoader = new MapLoader(this, width, height);
-    this.player = new Player(this, width / 2 + TILE_SIZE / 2, 0);
+    const controls = new Controls(
+      this,
+      20,
+      this.cameras.main.height - CONTROL_SIZE - 20
+    );
+    this.player = new Player(this, controls, width / 2 + TILE_SIZE / 2, 0);
     this.physics.add.collider(this.player.sprite, this.mapLoader.layer);
 
     camera.setBounds(0, 0, width, 100_000_000);
     camera.startFollow(this.player.sprite);
 
-    this.marker = new ShovelMarker(this, this.mapLoader);
+    if (!controls.isMobile) {
+      this.marker = new ShovelMarker(this, this.mapLoader);
+    }
     this.particles = this.add.particles(PARTICLE_SPRITESHEET);
 
     this.depthText = this.add
@@ -94,7 +102,7 @@ export default class Game extends Phaser.Scene {
   lastDug = 0;
   update(time: number, delta: number) {
     this.player.update();
-    this.marker.update();
+    this.marker?.update();
     // world-wrapping
     if (this.player.sprite.x < 0) {
       this.player.sprite.setX(this.mapLoader.width - this.player.sprite.width);
@@ -103,13 +111,6 @@ export default class Game extends Phaser.Scene {
       this.player.sprite.setX(0);
     }
     const camera = this.cameras.main;
-    const viewport = new Phaser.Geom.Rectangle(
-      camera.scrollX,
-      camera.scrollY,
-      camera.width,
-      camera.height
-    );
-    this.mapLoader.update(viewport);
     const pointer = this.input.activePointer;
     // throttle digging
     if (pointer.isDown && time - this.lastDug > 500 /* millis */) {

@@ -3,6 +3,7 @@ import _ from "lodash";
 
 import Game from "./Game";
 import { TileKey } from "./TileKey";
+import Controls from "./Controls";
 
 const GNOME_IMAGE = "voxel_gnome";
 const ITEMS_SPRITESHEET = "voxel_items";
@@ -18,16 +19,7 @@ export default class Player {
   sprite: Phaser.Physics.Arcade.Sprite;
   rectangle: Phaser.GameObjects.Rectangle;
   container: Phaser.GameObjects.Container;
-  keys: {
-    left: Phaser.Input.Keyboard.Key;
-    right: Phaser.Input.Keyboard.Key;
-    up: Phaser.Input.Keyboard.Key;
-    down: Phaser.Input.Keyboard.Key;
-    w: Phaser.Input.Keyboard.Key;
-    a: Phaser.Input.Keyboard.Key;
-    s: Phaser.Input.Keyboard.Key;
-    d: Phaser.Input.Keyboard.Key;
-  };
+  controls: Controls;
 
   public static preload(scene: Phaser.Scene) {
     scene.load.image(GNOME_IMAGE, "assets/images/gnome.png");
@@ -38,12 +30,13 @@ export default class Player {
     );
   }
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  constructor(scene: Phaser.Scene, controls: Controls, x: number, y: number) {
     this.scene = scene;
+    this.controls = controls;
 
     this.sprite = scene.physics.add
       .sprite(x, y, GNOME_IMAGE)
-      .setScale(0.8)
+      .setScale(0.6)
       .setDrag(5000, 0)
       .setMaxVelocity(1000, 2000);
 
@@ -59,29 +52,7 @@ export default class Player {
       .setVisible(false);
     this.container = scene.add
       .container(x, y, [shovelSprite, this.rectangle])
-      .setScale(0.4);
-
-    // Track the arrow keys
-    const {
-      LEFT,
-      RIGHT,
-      UP,
-      DOWN,
-      W,
-      A,
-      S,
-      D,
-    } = Phaser.Input.Keyboard.KeyCodes;
-    this.keys = scene.input.keyboard.addKeys({
-      left: LEFT,
-      right: RIGHT,
-      up: UP,
-      down: DOWN,
-      w: W,
-      a: A,
-      s: S,
-      d: D,
-    }) as any;
+      .setScale(0.3);
   }
 
   freeze() {
@@ -90,7 +61,7 @@ export default class Player {
   }
 
   update() {
-    const { keys, sprite } = this;
+    const keys = this.controls.keys;
 
     const onGround = this.sprite.body.blocked.down;
     const acceleration = 3000;

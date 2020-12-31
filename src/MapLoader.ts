@@ -97,8 +97,6 @@ export default class MapLoader {
     return vec.x + this.map.width * vec.y;
   }
 
-  update(visibleRect: Rectangle) {}
-
   holeIslands = (xys: [number, number][]) => {
     const islands: [number, number][][] = [];
     const unassigned = xys;
