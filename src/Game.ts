@@ -2,11 +2,15 @@ import Phaser from "phaser";
 import _ from "lodash";
 
 import Player from "./Player";
+import isMobile from "./isMobile";
 import Controls, { CONTROL_SIZE } from "./Controls";
 
-import ShovelMarker from "./ShovelMarker";
+import Reticle from "./Reticle";
 import MapLoader, { TILE_SIZE } from "./MapLoader";
 import { TileKey } from "./TileKey";
+import eventsCenter from "./EventsCenter";
+import { UIScene_Key } from "./UI";
+import PersistentStore from "./PersistentStore";
 
 const PARTICLE_SPRITESHEET = "voxel_particles";
 
@@ -15,12 +19,10 @@ const PARTICLE_SPRITESHEET = "voxel_particles";
  */
 export default class Game extends Phaser.Scene {
   player!: Player;
-  marker?: ShovelMarker;
+  marker?: Reticle;
   spikeGroup!: Phaser.Physics.Arcade.StaticGroup;
   particles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
   mapLoader!: MapLoader;
-  depthText!: Phaser.GameObjects.Text;
-  subtitleText!: Phaser.GameObjects.Text;
 
   preload() {
     Player.preload(this);
@@ -39,42 +41,21 @@ export default class Game extends Phaser.Scene {
     const [width, height] = [5120, 7168];
 
     this.mapLoader = new MapLoader(this, width, height);
-    const controls = new Controls(
-      this,
-      20,
-      this.cameras.main.height - CONTROL_SIZE - 20
-    );
-    this.player = new Player(this, controls, width / 2 + TILE_SIZE / 2, 0);
+    this.player = new Player(this, width / 2 + TILE_SIZE / 2, 0);
     this.physics.add.collider(this.player.sprite, this.mapLoader.layer);
 
     camera.setBounds(0, 0, width, 100_000_000);
     camera.startFollow(this.player.sprite);
 
-    if (!controls.isMobile) {
-      this.marker = new ShovelMarker(this, this.mapLoader);
+    if (isMobile(this)) {
+      camera.setZoom(1.5);
+    } else {
+      this.marker = new Reticle(this, this.mapLoader);
     }
+
     this.particles = this.add.particles(PARTICLE_SPRITESHEET);
-
-    this.depthText = this.add
-      .text(20, 20, "", {
-        fontSize: "32px",
-        color: "#000",
-      })
-      .setDepth(100)
-      .setScrollFactor(0);
-    this.subtitleText = this.add
-      .text(20, 60, "", {
-        fontSize: "18px",
-        color: "#000",
-      })
-      .setDepth(100)
-      .setScrollFactor(0);
-    this.updateText();
-  }
-
-  private updateText() {
-    const [depth, _hasCaverns] = this.mapLoader.holeDepth();
-    this.depthText.text = `Hole Depth: ${depth}m`;
+    this.scene.run(UIScene_Key);
+    this.scene.bringToTop(UIScene_Key);
   }
 
   canActionAtWorldXY(x: integer, y: integer): boolean {
@@ -154,7 +135,6 @@ export default class Game extends Phaser.Scene {
           this.player.shovelContents
         );
         this.player.shovelContents = undefined;
-        this.updateText();
         if (playerTile.equals(clickedTile)) {
           this.player.jump();
         }
@@ -174,8 +154,11 @@ export default class Game extends Phaser.Scene {
           .explode(10, worldPoint.x, worldPoint.y);
         this.player.shovelContents = existingType;
       }
-
-      this.updateText();
+      const [depth, _hasCaverns] = this.mapLoader.holeDepth();
+      eventsCenter.emit("my_hole_depth", {
+        name: PersistentStore.shared().getPlayerName(),
+        depth: depth,
+      });
     }
   }
 }

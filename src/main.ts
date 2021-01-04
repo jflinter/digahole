@@ -1,6 +1,6 @@
 import Phaser from "phaser";
-
 import Game from "./Game";
+import UI from "./UI";
 import PersistentStore from "./PersistentStore";
 
 const config: Phaser.Types.Core.GameConfig = {
@@ -8,7 +8,7 @@ const config: Phaser.Types.Core.GameConfig = {
   width: window.innerWidth,
   height: window.innerHeight,
   backgroundColor: "#B0E9FC",
-  scene: [Game],
+  scene: [Game, UI],
   render: {
     pixelArt: true,
     antialiasGL: false,

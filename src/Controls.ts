@@ -1,8 +1,10 @@
 import Phaser from "phaser";
 import _ from "lodash";
 
-type Key = { isDown: boolean };
-type Keys = {
+import eventsCenter from "./EventsCenter";
+
+export type Key = { isDown: boolean };
+export type Keys = {
   left: Key;
   right: Key;
   up: Key;
@@ -78,10 +80,12 @@ export default class Controls {
           .on("pointerdown", () => {
             triangle.setFillStyle(0x000000);
             this.keys[key].isDown = true;
+            this.updateKeys();
           })
           .on("pointerup", () => {
             triangle.setFillStyle(0x5f7374);
             this.keys[key].isDown = false;
+            this.updateKeys();
           });
 
         const container = scene.add.container(x, y, [rectangle, triangle]);
@@ -113,6 +117,12 @@ export default class Controls {
         s: S,
         d: D,
       }) as Keys;
+      scene.input.keyboard.on("keydown", this.updateKeys, this);
+      scene.input.keyboard.on("keyup", this.updateKeys, this);
     }
+  }
+
+  updateKeys() {
+    eventsCenter.emit("keyboard", this.keys);
   }
 }

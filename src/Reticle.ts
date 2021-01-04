@@ -6,7 +6,7 @@ import MapLoader from "./MapLoader";
  * A class that visualizes the mouse position within a tilemap. Call its update method from the
  * scene's update and call its destroy method when you're done with it.
  */
-export default class ShovelMarker {
+export default class Reticle {
   mapLoader: MapLoader;
   scene: Game;
   graphics: Phaser.GameObjects.Graphics;

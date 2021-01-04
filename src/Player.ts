@@ -1,10 +1,10 @@
 import Phaser from "phaser";
 import _ from "lodash";
 
-import Game from "./Game";
 import { TileKey } from "./TileKey";
-import Controls from "./Controls";
+import eventsCenter from "./EventsCenter";
 
+import type { Keys } from "./Controls";
 const GNOME_IMAGE = "voxel_gnome";
 const ITEMS_SPRITESHEET = "voxel_items";
 
@@ -19,7 +19,7 @@ export default class Player {
   sprite: Phaser.Physics.Arcade.Sprite;
   rectangle: Phaser.GameObjects.Rectangle;
   container: Phaser.GameObjects.Container;
-  controls: Controls;
+  keys: Keys;
 
   public static preload(scene: Phaser.Scene) {
     scene.load.image(GNOME_IMAGE, "assets/images/gnome.png");
@@ -30,9 +30,18 @@ export default class Player {
     );
   }
 
-  constructor(scene: Phaser.Scene, controls: Controls, x: number, y: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number) {
     this.scene = scene;
-    this.controls = controls;
+    this.keys = {
+      left: { isDown: false },
+      right: { isDown: false },
+      up: { isDown: false },
+      down: { isDown: false },
+      w: { isDown: false },
+      a: { isDown: false },
+      s: { isDown: false },
+      d: { isDown: false },
+    };
 
     this.sprite = scene.physics.add
       .sprite(x, y, GNOME_IMAGE)
@@ -46,6 +55,7 @@ export default class Player {
       ITEMS_SPRITESHEET,
       "shovel_iron.png"
     );
+
     this.rectangle = scene.add
       .rectangle(25, -30, 32, 32, 0x9f6c39)
       .setAngle(45)
@@ -53,6 +63,8 @@ export default class Player {
     this.container = scene.add
       .container(x, y, [shovelSprite, this.rectangle])
       .setScale(0.3);
+
+    eventsCenter.on("keyboard", (keys) => (this.keys = keys));
   }
 
   freeze() {
@@ -61,7 +73,7 @@ export default class Player {
   }
 
   update() {
-    const keys = this.controls.keys;
+    const keys = this.keys;
 
     const onGround = this.sprite.body.blocked.down;
     const acceleration = 3000;
