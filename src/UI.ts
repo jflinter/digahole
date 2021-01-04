@@ -13,7 +13,7 @@ export default class UIScene extends Phaser.Scene {
   }
 
   create() {
-    this.label = this.add.text(20, 20, "hello", {
+    this.label = this.add.text(20, 20, "", {
       fontSize: "32px",
       color: "#000",
     });

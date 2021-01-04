@@ -12,6 +12,7 @@ import eventsCenter from "./EventsCenter";
 import { UIScene_Key } from "./UI";
 import PersistentStore from "./PersistentStore";
 
+export const GAMESCENE_KEY = "game-scene";
 const PARTICLE_SPRITESHEET = "voxel_particles";
 
 /**
@@ -32,6 +33,10 @@ export default class Game extends Phaser.Scene {
       "assets/spritesheets/spritesheet_particles.png",
       "assets/spritesheets/spritesheet_particles.xml"
     );
+  }
+
+  constructor() {
+    super(GAMESCENE_KEY);
   }
 
   create() {

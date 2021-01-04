@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import Intro from "./Intro";
 import Game from "./Game";
 import UI from "./UI";
 import PersistentStore from "./PersistentStore";
@@ -8,7 +9,6 @@ const config: Phaser.Types.Core.GameConfig = {
   width: window.innerWidth,
   height: window.innerHeight,
   backgroundColor: "#B0E9FC",
-  scene: [Game, UI],
   render: {
     pixelArt: true,
     antialiasGL: false,
@@ -28,6 +28,9 @@ const config: Phaser.Types.Core.GameConfig = {
 
 (async () => {
   await PersistentStore.initialize();
+  config.scene = PersistentStore.shared().getIntroLoaded()
+    ? [Game, UI]
+    : [Intro, Game, UI];
   const game = new Phaser.Game(config);
   window.addEventListener("resize", () => {
     game.scale.resize(window.innerWidth, window.innerHeight);

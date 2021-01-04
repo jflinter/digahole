@@ -1,0 +1,98 @@
+import Phaser from "phaser";
+import _ from "lodash";
+import eventsCenter from "./EventsCenter";
+import isMobile from "./isMobile";
+import TextButton from "./TextButton";
+import { GAMESCENE_KEY } from "./Game";
+import PersistentStore from "./PersistentStore";
+
+export const IntroScene_Key = "intro-scene";
+
+const INTRO_TEXT =
+  "You have been consumed by a singular desire.\nYou yearn to feel the heft of dirt,\nto toil valiantly against the infinity of the earth,\nto peer deep into the darkness that lies below,\nto hear the clang of your shovel upon the soil,\nto\n*DIG\n*A\n*H*O*O*O*O*O*O*O*O*OL*L*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E";
+
+export default class UIScene extends Phaser.Scene {
+  private label!: Phaser.GameObjects.Text;
+
+  constructor() {
+    super(IntroScene_Key);
+  }
+
+  incr(text: string, i: integer, callback: () => void) {
+    if (i >= text.length) {
+      callback();
+      return;
+    }
+    let delay: number;
+    const c = text[i];
+    if (c === "*") {
+      this.cameras.main.shake();
+      delay = 40;
+    } else if (c === "\n") {
+      delay = 700;
+      this.label.text += text[i];
+    } else if (c === "~") {
+      delay = 10;
+      this.label.text += "\n";
+    } else {
+      delay = 10;
+      this.label.text += text[i];
+    }
+    this.time.addEvent({
+      callback: () => {
+        this.incr(text, i + 1, callback);
+      },
+      delay: delay,
+    });
+  }
+
+  create() {
+    const camera = this.cameras.main;
+    camera.setBackgroundColor("#000");
+    const offset = isMobile(this) ? 10 : 200;
+    this.label = this.add
+      .text(0, 20, "", {
+        fontSize: "32px",
+        color: "#fff",
+        align: "center",
+        fontStyle: "",
+      })
+      .setFixedSize(camera.width, camera.height)
+      .setWordWrapWidth(camera.width - 2 * offset);
+
+    const text = INTRO_TEXT.split("\n")
+      .map((line) => {
+        const sublines = this.label.getWrappedText(line);
+        return sublines.join("~");
+      })
+      .join("\n");
+    const height = Phaser.GameObjects.GetTextSize(
+      this.label,
+      this.label.getTextMetrics(),
+      text.split("\n")
+    ).height;
+    const button = new TextButton(
+      this,
+      0,
+      height + 50,
+      "✨BEGIN✨",
+      {
+        color: "#B0E9FC",
+        fontSize: "64px",
+      },
+      () => {
+        PersistentStore.shared().setIntroLoaded(true);
+        this.scene.start(GAMESCENE_KEY);
+      }
+    );
+    button.setX(camera.width / 2 - button.innerWidth() / 2);
+    this.incr(text, 0, () => {
+      this.time.addEvent({
+        callback: () => {
+          this.add.existing(button);
+        },
+        delay: 500,
+      });
+    });
+  }
+}

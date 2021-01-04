@@ -8,6 +8,7 @@ import eventsCenter, { HoleDepth } from "./EventsCenter";
 
 const RANDOM_SEED_KEY = "random_seed_3";
 const CHANGES_KEY = "changes_3";
+const INTRO_LOADED_KEY = "intro_loaded";
 const PLAYER_NAME_KEY = "player_name";
 
 export enum Change {
@@ -24,11 +25,13 @@ export default class PersistentStore {
   private db: firebase.firestore.Firestore;
   private changes: Map<integer, Change>;
   private randomSeed: integer;
+  private introLoaded: boolean;
   private playerName: string;
   private mutex = new Mutex();
 
   private constructor(
     db: firebase.firestore.Firestore,
+    introLoaded: boolean,
     changes: Map<integer, Change>,
     randomSeed: integer,
     playerName: string
@@ -36,6 +39,7 @@ export default class PersistentStore {
     this.db = db;
     this.changes = changes;
     this.randomSeed = randomSeed;
+    this.introLoaded = introLoaded;
     this.playerName = playerName;
 
     db.collection("user_depths").onSnapshot((snapshot) => {
@@ -80,12 +84,14 @@ export default class PersistentStore {
       CHANGES_KEY,
       () => []
     );
+    let introLoaded = await this.getOrDefault(INTRO_LOADED_KEY, () => false);
     let playerName = await this.getOrDefault(
       PLAYER_NAME_KEY,
       () => "Agnomenymous"
     );
     PersistentStore.instance = new PersistentStore(
       db,
+      introLoaded,
       new Map(changes),
       randomSeed,
       playerName
@@ -108,6 +114,15 @@ export default class PersistentStore {
     this.sync();
   }
 
+  setIntroLoaded(loaded) {
+    this.introLoaded = loaded;
+    this.sync();
+  }
+
+  getIntroLoaded(): boolean {
+    return this.introLoaded;
+  }
+
   getPlayerName() {
     return this.playerName;
   }
@@ -126,6 +141,7 @@ export default class PersistentStore {
     try {
       await localforage.setItem(CHANGES_KEY, [...this.changes]);
       await localforage.setItem(PLAYER_NAME_KEY, this.playerName);
+      await localforage.setItem(INTRO_LOADED_KEY, this.introLoaded);
       console.log("sync complete");
     } finally {
       release();
