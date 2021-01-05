@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import _ from "lodash";
 
 import type { Keys } from "./Controls";
+import MessageState from "./Messages";
 
 export type HoleDepth = { name: string; depth: integer };
 
@@ -46,6 +47,7 @@ type EventType = {
   my_hole_depth: HoleDepth;
   keyboard: Keys;
   leaderboard: HoleDepth[];
+  new_message_state: MessageState;
 };
 
 const eventsCenter = eventEmitter<EventType>();

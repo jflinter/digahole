@@ -1,15 +1,13 @@
 import Phaser from "phaser";
 import _ from "lodash";
-import eventsCenter from "./EventsCenter";
 import isMobile from "./isMobile";
 import TextButton from "./TextButton";
 import { GAMESCENE_KEY } from "./Game";
-import PersistentStore from "./PersistentStore";
 
 export const IntroScene_Key = "intro-scene";
 
 const INTRO_TEXT =
-  "You have been consumed by a singular desire.\nYou yearn to feel the heft of dirt,\nto toil valiantly against the infinity of the earth,\nto peer deep into the darkness that lies below,\nto hear the clang of your shovel upon the soil,\nto\n*DIG\n*A\n*H*O*O*O*O*O*O*O*O*OL*L*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E";
+  "A single desire consumes your thoughts:\nyou yearn to hear the clang of your shovel upon the soil,\nto feel the damp aroma of dirt in your nostrils,\nto peer into the darkness that lies below and within,\nto toil valiantly against the infinity of the earth,\nto\n*DIG\n*A\n*H*O*O*O*O*O*O*O*O*OL*L*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*!*!*!*!";
 
 export default class UIScene extends Phaser.Scene {
   private label!: Phaser.GameObjects.Text;
@@ -29,13 +27,13 @@ export default class UIScene extends Phaser.Scene {
       this.cameras.main.shake();
       delay = 40;
     } else if (c === "\n") {
-      delay = 700;
+      delay = 1300;
       this.label.text += text[i];
     } else if (c === "~") {
-      delay = 10;
+      delay = 30;
       this.label.text += "\n";
     } else {
-      delay = 10;
+      delay = 30;
       this.label.text += text[i];
     }
     this.time.addEvent({
@@ -49,7 +47,7 @@ export default class UIScene extends Phaser.Scene {
   create() {
     const camera = this.cameras.main;
     camera.setBackgroundColor("#000");
-    const offset = isMobile(this) ? 10 : 200;
+    const offset = isMobile(this) ? 10 : 160;
     this.label = this.add
       .text(0, 20, "", {
         fontSize: "32px",
@@ -74,14 +72,13 @@ export default class UIScene extends Phaser.Scene {
     const button = new TextButton(
       this,
       0,
-      height + 50,
+      height + 100,
       "✨BEGIN✨",
       {
         color: "#B0E9FC",
         fontSize: "64px",
       },
       () => {
-        PersistentStore.shared().setIntroLoaded(true);
         this.scene.start(GAMESCENE_KEY);
       }
     );

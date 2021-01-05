@@ -5,10 +5,11 @@ import firebase from "firebase/app";
 import "firebase/firestore";
 
 import eventsCenter, { HoleDepth } from "./EventsCenter";
+import MessageState, { depthFor, messagesFor, next } from "./Messages";
 
 const RANDOM_SEED_KEY = "random_seed_3";
 const CHANGES_KEY = "changes_3";
-const INTRO_LOADED_KEY = "intro_loaded";
+const MESSAGE_STATE_KEY = "message_state3";
 const PLAYER_NAME_KEY = "player_name";
 
 export enum Change {
@@ -25,13 +26,13 @@ export default class PersistentStore {
   private db: firebase.firestore.Firestore;
   private changes: Map<integer, Change>;
   private randomSeed: integer;
-  private introLoaded: boolean;
+  private messageState: MessageState;
   private playerName: string;
   private mutex = new Mutex();
 
   private constructor(
     db: firebase.firestore.Firestore,
-    introLoaded: boolean,
+    messageState: MessageState,
     changes: Map<integer, Change>,
     randomSeed: integer,
     playerName: string
@@ -39,7 +40,7 @@ export default class PersistentStore {
     this.db = db;
     this.changes = changes;
     this.randomSeed = randomSeed;
-    this.introLoaded = introLoaded;
+    this.messageState = messageState;
     this.playerName = playerName;
 
     db.collection("user_depths").onSnapshot((snapshot) => {
@@ -56,6 +57,11 @@ export default class PersistentStore {
 
     eventsCenter.on("my_hole_depth", (depth) => {
       db.collection("user_depths").doc(this.randomSeed.toString()).set(depth);
+      const nextState = next(this.messageState);
+      const nextDepth = nextState && depthFor(nextState);
+      if (nextDepth && depth.depth >= nextDepth) {
+        this.setMessageState(nextState);
+      }
     });
   }
 
@@ -84,7 +90,10 @@ export default class PersistentStore {
       CHANGES_KEY,
       () => []
     );
-    let introLoaded = await this.getOrDefault(INTRO_LOADED_KEY, () => false);
+    let introLoaded = await this.getOrDefault(
+      MESSAGE_STATE_KEY,
+      () => MessageState.Intro
+    );
     let playerName = await this.getOrDefault(
       PLAYER_NAME_KEY,
       () => "Agnomenymous"
@@ -111,16 +120,22 @@ export default class PersistentStore {
 
   setPlayerName(name: string) {
     this.playerName = name;
+    if (this.messageState === MessageState.ThreeMeters) {
+      this.setMessageState(MessageState.ThreeMetersWithName);
+    }
     this.sync();
   }
 
-  setIntroLoaded(loaded) {
-    this.introLoaded = loaded;
-    this.sync();
+  setMessageState(messageState) {
+    if (this.messageState !== messageState) {
+      this.messageState = messageState;
+      eventsCenter.emit("new_message_state", this.messageState);
+      this.sync();
+    }
   }
 
-  getIntroLoaded(): boolean {
-    return this.introLoaded;
+  getMessageState(): MessageState {
+    return this.messageState;
   }
 
   getPlayerName() {
@@ -141,7 +156,7 @@ export default class PersistentStore {
     try {
       await localforage.setItem(CHANGES_KEY, [...this.changes]);
       await localforage.setItem(PLAYER_NAME_KEY, this.playerName);
-      await localforage.setItem(INTRO_LOADED_KEY, this.introLoaded);
+      await localforage.setItem(MESSAGE_STATE_KEY, this.messageState);
       console.log("sync complete");
     } finally {
       release();
@@ -153,6 +168,13 @@ export default class PersistentStore {
   }
 }
 
-(window as any).setPlayerName = (name) => {
-  PersistentStore.shared().setPlayerName(name);
+(window as any).debug = {
+  setPlayerName: (name) => {
+    PersistentStore.shared().setPlayerName(name);
+    return (window as any).debug;
+  },
+  setMessageState: (messageState) => {
+    PersistentStore.shared().setMessageState(messageState);
+    return (window as any).debug;
+  },
 };
