@@ -77,7 +77,7 @@ export default class UIScene extends Phaser.Scene {
       this,
       this.cameras.main.width - 100,
       40,
-      "🏆",
+      "👑",
       {
         color: "#B0E9FC",
         fontSize: "64px",

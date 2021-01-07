@@ -14,9 +14,6 @@ const CHUNK_TILE_SCALE = CHUNK_SIZE / TILE_SIZE;
 
 const TILE_SPRITESHEET = "voxel_tiles";
 
-type Rectangle = Phaser.Geom.Rectangle;
-const Rectangle = Phaser.Geom.Rectangle;
-
 type Vector = Phaser.Math.Vector2;
 const Vector = Phaser.Math.Vector2;
 
