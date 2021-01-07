@@ -1,7 +1,7 @@
 import absurd from "./absurd";
 
 export enum TileKey {
-  BLANK = 62,
+  // n.b. these correspond to indices in the tileset
   GRASS = 43,
   DIRT = 52,
   SANDY_DIRT = 6,
@@ -9,6 +9,9 @@ export enum TileKey {
   BLUE = 88,
   LIGHT_STONE = 39,
   STONE_WITH_MUSHROOM = 53,
+  PORTAL_BLUE = 62,
+  PORTAL_ORANGE = 71,
+  BLANK = 80,
 }
 
 export namespace TileKey {
@@ -23,6 +26,8 @@ export namespace TileKey {
         return true;
       case TileKey.BLANK:
       case TileKey.STONE:
+      case TileKey.PORTAL_BLUE:
+      case TileKey.PORTAL_ORANGE:
         return false;
       default:
         absurd(tileKey);
@@ -36,6 +41,8 @@ export namespace TileKey {
       case TileKey.DIRT:
       case TileKey.SANDY_DIRT:
       case TileKey.STONE_WITH_MUSHROOM:
+      case TileKey.PORTAL_BLUE:
+      case TileKey.PORTAL_ORANGE:
         return true;
       case TileKey.BLANK:
       case TileKey.STONE:
@@ -59,6 +66,8 @@ export namespace TileKey {
       case TileKey.SANDY_DIRT:
       case TileKey.LIGHT_STONE:
       case TileKey.BLUE:
+      case TileKey.PORTAL_BLUE:
+      case TileKey.PORTAL_ORANGE:
         return false;
       default:
         absurd(tileKey);
