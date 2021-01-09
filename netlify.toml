@@ -1,6 +1,5 @@
 [context.production.environment]
   FIREBASE_SUFFIX = "production"
-  NODE_ENV = "production"
-[context.deploy-preview.environment]
+
+[context.branch-deploy.environment]
   FIREBASE_SUFFIX = "staging"
-  NODE_ENV = "staging"
