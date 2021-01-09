@@ -8,7 +8,6 @@ import store, { addAchievement, getState$, RootState } from "./store";
 import { afterEarning, earnedAchievement, messagesFor } from "./Achievements";
 import { adjectives, greatAdjectives, holeNouns } from "./Words";
 import { Chance } from "chance";
-import { filter } from "lodash";
 
 export const UIScene_Key = "ui-scene";
 const AVATAR_KEY = "pixel_jack";
@@ -77,7 +76,7 @@ export default class UIScene extends Phaser.Scene {
           const state = store.getState();
           const messages = messagesFor(achievement, state);
           const after = afterEarning(achievement);
-          this.sendMessages(messages, { char: 20, line: 3200 }, after);
+          this.sendMessages(messages, { char: 20, line: 4500 }, after);
         }
       });
   }
