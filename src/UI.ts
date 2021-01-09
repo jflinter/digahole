@@ -179,18 +179,18 @@ const buildLeaderboard = (state: RootState): string => {
     .sort((a, b) => b.depth - a.depth || a.created - b.created);
   const adjChoices = chance.pickset(adjectives, filtered.length);
   const nounChoices = chance.pickset(holeNouns, filtered.length);
+  const place = filtered.findIndex((e) => e.randomSeed === randomSeed);
   const lines = filtered.map((entry, i) => {
     const name = entry.hasWon ? `${entry.name} 😎` : entry.name;
     if (i === 0) {
       if (entry.randomSeed === randomSeed) {
-        return `You, yes YOU, have the DEEPEST HOLE IN THE WORLD at ${entry.depth}m.`;
+        return `You, yes YOU (aka ${name}), have the DEEPEST HOLE IN THE WORLD at ${entry.depth}m.`;
       } else {
         const great = chance.pickone(greatAdjectives);
         const an = /^[aeiou].*/i.test(great) ? "an" : "a";
         return `${name} has the deepest hole in the world - ${an} ${great} ${entry.depth}m deep.`;
       }
     }
-    const then = i === 1 ? "Next" : "Then";
     const adjective = adjChoices[i];
     const noun = nounChoices[i];
     let an: string;
@@ -206,12 +206,16 @@ const buildLeaderboard = (state: RootState): string => {
         entry.depth
       }m hole.`;
     } else {
-      return `At #${i + 1} is ${name} and their ${adjective} ${
+      const at = i === place + 1 ? "Nipping at your heels at" : "At";
+      return `${at} #${i + 1} is ${name} and their ${adjective} ${
         entry.depth
       }m ${noun}.`;
     }
   });
-  const edited = lines.join("\n");
+
+  const truncated = lines.slice(0, place + 1);
+
+  const edited = truncated.join("\n");
   const conclusion = chance.pickone(conclusions);
   return `🕳️ HOLES OF FAME 🕳️\n\n${edited}\n\n${conclusion}`;
 };
