@@ -63,15 +63,33 @@ export default class TileChooser {
       ...Array(700).fill(TileKey.DIRT),
       ...Array(200).fill(TileKey.SANDY_DIRT),
     ]);
+    const D = TileKey.DIRT;
+    const S = TileKey.STONE;
+    const L = TileKey.LIGHT_STONE;
+    const M = TileKey.STONE_WITH_MUSHROOM;
+    const P = TileKey.PORTAL_BLUE;
+    const x = this.width / 2;
     this.specialAreas = [
-      new SpecialArea(this.width / 2 + 2, SHALLOW_DIRT_DEPTH - 1, [
-        [TileKey.STONE_WITH_MUSHROOM],
+      new SpecialArea(x + 2, SHALLOW_DIRT_DEPTH - 1, [[M]]),
+      new SpecialArea(x + 1, SHALLOW_DIRT_DEPTH + 3, [
+        [S, S, D],
+        [S, S, M],
       ]),
-      new SpecialArea(this.width / 2 + 1, SHALLOW_DIRT_DEPTH + 3, [
-        [TileKey.STONE, TileKey.STONE, TileKey.DIRT],
-        [TileKey.STONE, TileKey.STONE, TileKey.STONE_WITH_MUSHROOM],
+      SpecialArea.squareEmpty(x - 3, SHALLOW_DIRT_DEPTH + 6, 3),
+      new SpecialArea(x + 11, SHALLOW_DIRT_DEPTH + 8, [
+        [D, L, L, L, L, L, L, L],
+        [D, L, P, D, D, D, D, L],
+        [D, L, L, L, L, L, D, L],
+        [D, L, D, D, D, D, D, L],
+        [D, L, D, L, L, L, D, L],
+        [D, L, D, D, D, L, L, L],
+        [D, L, D, L, D, L, D, D],
+        [D, L, L, L, D, L, D, D],
+        [D, D, D, D, D, L, D, D],
+        [L, L, L, L, D, L, D, D],
+        [D, D, D, L, L, L, D, D],
       ]),
-      SpecialArea.squareEmpty(this.width / 2 - 3, SHALLOW_DIRT_DEPTH + 6, 3),
+      SpecialArea.squareEmpty(x + 4, SHALLOW_DIRT_DEPTH + 10, 4),
     ];
   }
 

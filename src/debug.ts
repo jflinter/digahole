@@ -1,4 +1,9 @@
-import store, { setName, LOCALSTORAGE_STATE_KEY } from "./store";
+import Game from "./Game";
+import store, {
+  setName,
+  LOCALSTORAGE_STATE_KEY,
+  setOrangeTilePoint,
+} from "./store";
 
 export const initializeDebug = () => {
   (window as any).debug = {
@@ -12,6 +17,18 @@ export const initializeDebug = () => {
     reset: () => {
       localStorage.setItem(LOCALSTORAGE_STATE_KEY, "");
       window.location.reload();
+    },
+    warpTo: (x, y) => {
+      Game.instance.warpTo(x, y);
+      return (window as any).debug;
+    },
+    resetOrangeTile: () => {
+      const point = store.getState().player.orangeTilePoint;
+      if (point) {
+        Game.instance.mapLoader.digTileAtWorldXY(point[0], point[1]);
+        store.dispatch(setOrangeTilePoint(null));
+      }
+      return (window as any).debug;
     },
   };
 };

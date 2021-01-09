@@ -64,7 +64,7 @@ const achievements: achievement[] = [
   {
     type: "endgame",
     prerequisites: ["leaderboard"],
-    check: (state) => state.holeDepth.current > 30,
+    check: (state) => state.holeDepth.current >= 30,
   },
   {
     type: "victory",
@@ -172,16 +172,16 @@ export const messagesFor = (
     case "portal_touch":
       return [
         `Good grief ${name}! It's a portal to the ass-tral plane! An ass-hole!`,
-        "Jump when you're touching the ass-hole to enter it. [editor's note: i'm so sorry]",
+        "Jump when you're touching the ass-hole to enter it. [editor's note: i am sorry]",
         "Just like merry mushrooms, you can move ass-holes around by digging them.",
         "Think of how deep you'll be able to dig with this thing! Surely this was worth the toil!!",
-        "Dig a little deeper and we will begin ⚡cyberhole 2021: endgame⚡.",
+        "Dig a little deeper and we will begin ⚡Cyberhole 2021: ENDGAME⚡.",
       ];
     case "endgame":
       const max = _.maxBy(state.leaderboard, (entry) => entry.depth);
       return [
         "What a, and I can't stress this enough, deep hole you have dug.",
-        "Okay look I know what you're thinking NAME.",
+        `Okay look I know what you're thinking ${name}.`,
         '"So what I\'m just supposed to keep digging now?"',
         "Well yes. But more specifically! I will now tell you how you ✨WIN THE GAME✨",
         "You win the game by DIGGING THE DEEPEST HOLE IN THE WORLD.",
@@ -196,6 +196,7 @@ export const messagesFor = (
         `I can't believe this is happening! This is so incredible! Somebody really dug this deep! Look at your beautiful hole, ${name}!`,
         "Look there isn't any tracking or whatever in this game so I have no idea who you are. Please email idugahole@jackreed.computer immediately to share the news.",
         "And now for your fabulous prize!",
+
         "Your name will now have a 😎 emoji after it in the leaderboard!",
         "Ok ok there's more. You will also receive a FREE LIMITED EDITION CYBERHOLE 2021 CREW NECK SWEATSHIRT!!!",
         "Please enter your shipping address to receive your beautiful sweatshirt.",
@@ -204,7 +205,7 @@ export const messagesFor = (
       return [
         "Aw, bummer to hear you don't want your sweatshirt. But at least you'll have your 😎!",
         "OK, that's the end of the game! You can keep digging deeper to make it harder for other people to win the game now.",
-        "2021 is definitely going to be your year!",
+        "2021 is definitely going to be your year!!!!!!!!!!!!",
       ];
     default:
       return absurd(type);

@@ -76,7 +76,7 @@ export default class UIScene extends Phaser.Scene {
           const state = store.getState();
           const messages = messagesFor(achievement, state);
           const after = afterEarning(achievement);
-          this.sendMessages(messages, { char: 20, line: 4500 }, after);
+          this.sendMessages(messages, { char: 20, line: 6000 }, after);
         }
       });
   }

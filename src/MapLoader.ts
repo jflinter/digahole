@@ -3,12 +3,15 @@ import _ from "lodash";
 
 import { TileKey } from "./TileKey";
 import TileChooser from "./TileChooser";
-import store, { addChange, hasTouchedMushroom } from "./store";
+import store, {
+  addChange,
+  hasTouchedMushroom,
+  setBlueTilePoint,
+  setOrangeTilePoint,
+} from "./store";
 
 export const TILE_SIZE = 128;
 const SKY_HEIGHT_TILES = 4;
-const CHUNK_SIZE = 1024;
-const CHUNK_TILE_SCALE = CHUNK_SIZE / TILE_SIZE;
 
 const TILE_SPRITESHEET = "voxel_tiles";
 
@@ -160,6 +163,10 @@ export default class MapLoader {
     return this.map.getTileAtWorldXY(x, y);
   }
 
+  getTileAtTileXY(xy: Vector): Phaser.Tilemaps.Tile {
+    return this.map.getTileAt(xy.x, xy.y);
+  }
+
   canDigAtTile(vector: Vector): boolean {
     const tile = this.map.getTileAt(vector.x, vector.y);
     if (!tile) return false;
@@ -207,6 +214,14 @@ export default class MapLoader {
 
   private putTileAt(tileType: TileKey, vec: Vector): Phaser.Tilemaps.Tile {
     const idx = this.indexForTile(vec);
+    if (tileType == TileKey.PORTAL_BLUE || tileType == TileKey.PORTAL_ORANGE) {
+      const actionCreator =
+        tileType == TileKey.PORTAL_BLUE ? setBlueTilePoint : setOrangeTilePoint;
+      const point = this.map.tileToWorldXY(vec.x, vec.y);
+      store.dispatch(
+        actionCreator([point.x + TILE_SIZE / 2, point.y + TILE_SIZE / 2])
+      );
+    }
     this.map.getTileAt(vec.x, vec.y)?.destroy();
     const tile = this.map
       .putTileAt(tileType, vec.x, vec.y)
@@ -215,6 +230,31 @@ export default class MapLoader {
       tile.setCollisionCallback(MapLoader.onMushroom, {});
     }
     return tile;
+  }
+
+  placeInitialOrangeTile() {
+    const y1 = SKY_HEIGHT_TILES;
+    const y2 = y1 + 1;
+    const y3 = y2 + 1;
+    [
+      [1, y1],
+      [2, y1],
+      [3, y1],
+      [4, y1],
+      [5, y1],
+      [6, y1],
+      [7, y1],
+      [2, y2],
+      [3, y2],
+      [4, y2],
+      [5, y2],
+      [6, y2],
+      [3, y3],
+      [4, y3],
+      [5, y3],
+    ].map((p) => this.digTile(new Phaser.Math.Vector2(p[0], p[1])));
+    // will implicitly set the tile point
+    this.unDigTile(new Phaser.Math.Vector2(4, y3), TileKey.PORTAL_ORANGE);
   }
 
   worldToTileXY(x: number, y: number): Vector {

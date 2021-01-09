@@ -52,9 +52,9 @@ export default class Player {
       .setScale(0.3);
   }
 
-  freeze() {
+  freeze(frozen) {
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    body.moves = false;
+    body.moves = frozen;
   }
 
   update() {
@@ -82,9 +82,18 @@ export default class Player {
     const worldPoint = pointer.positionToCamera(
       this.scene.cameras.main
     ) as Phaser.Math.Vector2;
+    const achievements = store.getState().achievements;
+    const portalPoint = store.getState().player.blueTilePoint;
+    const compass =
+      achievements.includes("portal_hint") &&
+      !achievements.includes("portal_touch");
+    const pointTo =
+      compass && portalPoint
+        ? new Phaser.Math.Vector2(portalPoint[0], portalPoint[1])
+        : worldPoint;
     const position = new Phaser.Math.Vector2(this.sprite.x, this.sprite.y);
     const angleToMouse = Phaser.Math.RadToDeg(
-      Phaser.Math.Angle.BetweenPoints(position, worldPoint)
+      Phaser.Math.Angle.BetweenPoints(position, pointTo)
     );
 
     this.container.x = this.sprite.x + 30;

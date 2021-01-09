@@ -1,6 +1,13 @@
 import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import _ from "lodash";
-import { Observable } from "rxjs";
+import { Observable, asyncScheduler } from "rxjs";
+import { Mutex } from "async-mutex";
+import {
+  map,
+  filter,
+  distinctUntilChanged,
+  throttleTime,
+} from "rxjs/operators";
 import Chance from "chance";
 
 import { TileKey } from "./TileKey";
@@ -68,11 +75,15 @@ const playerSlice = createSlice({
     shovelContents: null,
     hasTouchedMushroom: false,
     hasTouchedPortal: false,
+    blueTilePoint: null,
+    orangeTilePoint: null,
   } as {
     name: string | null;
     shovelContents: TileKey | null;
     hasTouchedMushroom: boolean;
     hasTouchedPortal: boolean;
+    blueTilePoint: [integer, integer] | null;
+    orangeTilePoint: [integer, integer] | null;
   },
   reducers: {
     setName(state, action: PayloadAction<string>) {
@@ -86,6 +97,12 @@ const playerSlice = createSlice({
     },
     hasTouchedPortal(state) {
       state.hasTouchedPortal = true;
+    },
+    setBlueTilePoint(state, action) {
+      state.blueTilePoint = action.payload;
+    },
+    setOrangeTilePoint(state, action) {
+      state.orangeTilePoint = action.payload;
     },
   },
 });
@@ -108,30 +125,6 @@ const store = configureStore({
   preloadedState: preloaded,
 });
 
-const saveState = () => {
-  let state = store.getState();
-  let json = JSON.stringify(state);
-  localStorage.setItem(LOCALSTORAGE_STATE_KEY, json);
-};
-
-store.subscribe(saveState);
-
-export const {
-  setName,
-  setLeaderboard,
-  setHoleDepth,
-  setShovelContents,
-  addChange,
-  hasTouchedMushroom,
-  addAchievement,
-} = {
-  ...holeDepthSlice.actions,
-  ...changesSlice.actions,
-  ...leaderboardSlice.actions,
-  ...playerSlice.actions,
-  ...achievementsSlice.actions,
-};
-
 export type RootState = ReturnType<typeof store.getState>;
 
 export const getState$: () => Observable<RootState> = () =>
@@ -142,5 +135,43 @@ export const getState$: () => Observable<RootState> = () =>
     });
     return unsubscribe;
   });
+
+const mutex = new Mutex();
+
+getState$()
+  .pipe(
+    distinctUntilChanged(_.isEqual),
+    throttleTime(1000, asyncScheduler, { trailing: true })
+  )
+  .subscribe(async (state) => {
+    const release = await mutex.acquire();
+    try {
+      let json = JSON.stringify(state);
+      console.log("saving");
+      console.log(state);
+      localStorage.setItem(LOCALSTORAGE_STATE_KEY, json);
+    } finally {
+      release();
+    }
+  });
+
+export const {
+  setName,
+  setLeaderboard,
+  setHoleDepth,
+  setShovelContents,
+  addChange,
+  hasTouchedMushroom,
+  hasTouchedPortal,
+  addAchievement,
+  setBlueTilePoint,
+  setOrangeTilePoint,
+} = {
+  ...holeDepthSlice.actions,
+  ...changesSlice.actions,
+  ...leaderboardSlice.actions,
+  ...playerSlice.actions,
+  ...achievementsSlice.actions,
+};
 
 export default store;

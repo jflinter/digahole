@@ -8,7 +8,13 @@ import Reticle from "./Reticle";
 import MapLoader, { TILE_SIZE } from "./MapLoader";
 import { TileKey } from "./TileKey";
 import { UIScene_Key } from "./UI";
-import store, { setHoleDepth, setShovelContents } from "./store";
+import store, {
+  setHoleDepth,
+  setShovelContents,
+  hasTouchedPortal,
+  setOrangeTilePoint,
+} from "./store";
+import { getKeys } from "./Keys";
 
 export const GAMESCENE_KEY = "game-scene";
 const PARTICLE_SPRITESHEET = "voxel_particles";
@@ -22,6 +28,7 @@ export default class Game extends Phaser.Scene {
   spikeGroup!: Phaser.Physics.Arcade.StaticGroup;
   particles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
   mapLoader!: MapLoader;
+  static instance: Game;
 
   preload() {
     Player.preload(this);
@@ -38,6 +45,7 @@ export default class Game extends Phaser.Scene {
   }
 
   create() {
+    Game.instance = this;
     this.physics.world.setFPS(120);
     const camera = this.cameras.main;
 
@@ -53,6 +61,8 @@ export default class Game extends Phaser.Scene {
     if (mobile) {
       camera.setZoom(1.5);
     } else {
+      // DEBUG
+      // camera.setZoom(0.2);
       this.marker = new Reticle(this, this.mapLoader);
     }
 
@@ -61,22 +71,34 @@ export default class Game extends Phaser.Scene {
     this.scene.bringToTop(UIScene_Key);
   }
 
-  canActionAtWorldXY(x: integer, y: integer): boolean {
-    const playerTile = this.mapLoader.worldToTileXY(
+  playerTile() {
+    return this.mapLoader.worldToTileXY(
       this.player.sprite.x,
       this.player.sprite.y
     );
+  }
+
+  playerTileType(): TileKey | null {
+    return this.mapLoader.getTileAtTileXY(this.playerTile())?.index as TileKey;
+  }
+
+  canActionAtWorldXY(x: integer, y: integer): boolean {
+    const playerTile = this.playerTile();
     const clickedTile = this.mapLoader.worldToTileXY(x, y);
     const abovePlayer = playerTile.clone().add(new Phaser.Math.Vector2(0, -1));
     if (
       Math.abs(playerTile.x - clickedTile.x) > 1 ||
-      Math.abs(playerTile.y - clickedTile.y) > 1 ||
-      (_.isEqual(playerTile, clickedTile) &&
-        this.mapLoader.canDigAtTile(abovePlayer))
+      Math.abs(playerTile.y - clickedTile.y) > 1
     ) {
       return false;
     }
     if (store.getState().player.shovelContents) {
+      if (
+        _.isEqual(playerTile, clickedTile) &&
+        !this.mapLoader.canUndigAtTile(abovePlayer)
+      ) {
+        return false;
+      }
       return this.mapLoader.canUnDigAtWorldXY(x, y);
     } else {
       return this.mapLoader.canDigAtWorldXY(x, y);
@@ -84,6 +106,7 @@ export default class Game extends Phaser.Scene {
   }
 
   lastDug = 0;
+  canWarp = true;
   update(time: number, delta: number) {
     this.player.update();
     this.marker?.update();
@@ -105,6 +128,22 @@ export default class Game extends Phaser.Scene {
     }
     const camera = this.cameras.main;
     const pointer = this.input.activePointer;
+    const playerTile = this.playerTile();
+    const playerTileType = this.playerTileType();
+    if (
+      playerTileType === TileKey.PORTAL_BLUE ||
+      playerTileType === TileKey.PORTAL_ORANGE
+    ) {
+      store.dispatch(hasTouchedPortal());
+      if (getKeys().up) {
+        if (this.canWarp) {
+          this.canWarp = false;
+          this.warp();
+        }
+      } else {
+        this.canWarp = true;
+      }
+    }
     // throttle digging
     if (pointer.isDown && time - this.lastDug > 500 /* millis */) {
       this.lastDug = time;
@@ -119,7 +158,7 @@ export default class Game extends Phaser.Scene {
         `clicked world point ${[worldPoint.x, worldPoint.y]} tile point ${[
           tilePoint.x,
           tilePoint.y,
-        ]}`
+        ]}. player tile is ${[playerTile.x, playerTile.y]}`
       );
 
       if (!this.canActionAtWorldXY(worldPoint.x, worldPoint.y)) {
@@ -131,10 +170,6 @@ export default class Game extends Phaser.Scene {
         worldPoint.y
       ).index as TileKey;
 
-      const playerTile = this.mapLoader.worldToTileXY(
-        this.player.sprite.x,
-        this.player.sprite.y
-      );
       const clickedTile = this.mapLoader.worldToTileXY(
         worldPoint.x,
         worldPoint.y
@@ -170,5 +205,62 @@ export default class Game extends Phaser.Scene {
       const [depth, _hasCaverns] = this.mapLoader.holeDepth();
       store.dispatch(setHoleDepth(depth));
     }
+  }
+
+  warp() {
+    const currentTileType = this.playerTileType();
+    if (
+      !currentTileType ||
+      ![TileKey.PORTAL_BLUE, TileKey.PORTAL_ORANGE].includes(currentTileType)
+    ) {
+      return;
+    }
+    const { shovelContents, orangeTilePoint } = store.getState().player;
+    if (
+      shovelContents === TileKey.PORTAL_BLUE ||
+      shovelContents === TileKey.PORTAL_ORANGE
+    ) {
+      return;
+    }
+    if (!orangeTilePoint) {
+      this.mapLoader.placeInitialOrangeTile();
+    }
+    const player = store.getState().player;
+    const destination =
+      currentTileType === TileKey.PORTAL_BLUE
+        ? player.orangeTilePoint
+        : player.blueTilePoint;
+    if (destination) {
+      this.warpTo(destination[0], destination[1]);
+    }
+  }
+
+  warping = false;
+  warpTo(worldX, worldY) {
+    if (this.warping) {
+      return;
+    }
+    console.log("warrrpppp");
+    this.warping = true;
+    const camera = this.cameras.main;
+    const distance = Phaser.Math.Distance.BetweenPoints(
+      new Phaser.Math.Vector2(worldX, worldY),
+      new Phaser.Math.Vector2(this.player.sprite.x, this.player.sprite.y)
+    );
+    console.log([worldX, worldY]);
+    console.log([camera.centerX, camera.centerY]);
+    console.log(JSON.stringify(distance));
+    const speed = 10.0;
+    const duration = distance / speed;
+
+    camera.shake(duration, 0.01);
+    this.add.tween({
+      targets: [this.player.sprite],
+      x: worldX,
+      y: worldY,
+      duration: duration,
+      ease: "Quad.easeInOut",
+      onComplete: () => (this.warping = false),
+    });
   }
 }
