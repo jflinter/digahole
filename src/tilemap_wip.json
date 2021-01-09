@@ -22,7 +22,20 @@
  "renderorder":"right-down",
  "tiledversion":"1.4.3",
  "tileheight":128,
- "tilesets":[],
+ "tilesets":[
+        {
+         "columns":9,
+         "firstgid":1,
+         "image":"..\/public\/assets\/images\/spritesheet_tiles.png",
+         "imageheight":1280,
+         "imagewidth":1152,
+         "margin":0,
+         "name":"spritesheet_tiles",
+         "spacing":0,
+         "tilecount":90,
+         "tileheight":128,
+         "tilewidth":128
+        }],
  "tilewidth":128,
  "type":"map",
  "version":1.4,

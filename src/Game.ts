@@ -2,15 +2,13 @@ import Phaser from "phaser";
 import _ from "lodash";
 
 import Player from "./Player";
-import isMobile from "./isMobile";
-import Controls, { CONTROL_SIZE } from "./Controls";
+import { mobile } from "./isMobile";
 
 import Reticle from "./Reticle";
 import MapLoader, { TILE_SIZE } from "./MapLoader";
 import { TileKey } from "./TileKey";
-import eventsCenter from "./EventsCenter";
 import { UIScene_Key } from "./UI";
-import PersistentStore from "./PersistentStore";
+import store, { setHoleDepth, setShovelContents } from "./store";
 
 export const GAMESCENE_KEY = "game-scene";
 const PARTICLE_SPRITESHEET = "voxel_particles";
@@ -52,7 +50,7 @@ export default class Game extends Phaser.Scene {
     camera.setBounds(0, 0, width, 100_000_000);
     camera.startFollow(this.player.sprite);
 
-    if (isMobile(this)) {
+    if (mobile) {
       camera.setZoom(1.5);
     } else {
       this.marker = new Reticle(this, this.mapLoader);
@@ -78,7 +76,7 @@ export default class Game extends Phaser.Scene {
     ) {
       return false;
     }
-    if (this.player.shovelContents) {
+    if (store.getState().player.shovelContents) {
       return this.mapLoader.canUnDigAtWorldXY(x, y);
     } else {
       return this.mapLoader.canDigAtWorldXY(x, y);
@@ -90,11 +88,20 @@ export default class Game extends Phaser.Scene {
     this.player.update();
     this.marker?.update();
     // world-wrapping
-    if (this.player.sprite.x < 0) {
-      this.player.sprite.setX(this.mapLoader.width - this.player.sprite.width);
+    // if (this.player.sprite.x < 0) {
+    //   this.player.sprite.setX(this.mapLoader.width - this.player.sprite.width);
+    // }
+    // if (this.player.sprite.x > this.mapLoader.width) {
+    //   this.player.sprite.setX(0);
+    // }
+    if (this.player.sprite.x < this.player.sprite.width) {
+      this.player.sprite.setX(this.player.sprite.width);
     }
-    if (this.player.sprite.x > this.mapLoader.width) {
-      this.player.sprite.setX(0);
+    if (
+      this.player.sprite.x >
+      this.mapLoader.width - this.player.sprite.width
+    ) {
+      this.player.sprite.setX(this.mapLoader.width - this.player.sprite.width);
     }
     const camera = this.cameras.main;
     const pointer = this.input.activePointer;
@@ -133,13 +140,14 @@ export default class Game extends Phaser.Scene {
         worldPoint.y
       );
 
-      if (this.player.shovelContents) {
+      const shovelContents = store.getState().player.shovelContents;
+      if (shovelContents) {
         this.mapLoader.unDigTileAtWorldXY(
           worldPoint.x,
           worldPoint.y,
-          this.player.shovelContents
+          shovelContents
         );
-        this.player.shovelContents = undefined;
+        store.dispatch(setShovelContents(null));
         if (playerTile.equals(clickedTile)) {
           this.player.jump();
         }
@@ -157,13 +165,10 @@ export default class Game extends Phaser.Scene {
             scale: { start: 1, end: 0 },
           })
           .explode(10, worldPoint.x, worldPoint.y);
-        this.player.shovelContents = existingType;
+        store.dispatch(setShovelContents(existingType));
       }
       const [depth, _hasCaverns] = this.mapLoader.holeDepth();
-      eventsCenter.emit("my_hole_depth", {
-        name: PersistentStore.shared().getPlayerName(),
-        depth: depth,
-      });
+      store.dispatch(setHoleDepth(depth));
     }
   }
 }

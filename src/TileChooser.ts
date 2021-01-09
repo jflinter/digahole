@@ -3,6 +3,7 @@ import { TileKey } from "./TileKey";
 import PersistentStore from "./PersistentStore";
 import Chance from "chance";
 import _ from "lodash";
+import store from "./store";
 
 class SpecialArea {
   x: integer;
@@ -45,7 +46,7 @@ export default class TileChooser {
   private height: integer;
   private randomDirt: integer[];
   private shallowDirt: integer[];
-  private chance = new Chance(PersistentStore.shared().getRandomSeed());
+  private chance = new Chance(store.getState().randomSeed);
   private specialAreas: SpecialArea[];
 
   // hack: generate a large array to prevent repeats in the tile array

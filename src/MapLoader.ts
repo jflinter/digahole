@@ -1,11 +1,9 @@
 import Phaser, { Tilemaps } from "phaser";
-import _, { create, xor } from "lodash";
-import Chance from "chance";
+import _ from "lodash";
 
 import { TileKey } from "./TileKey";
 import TileChooser from "./TileChooser";
-import PersistentStore, { Change } from "./PersistentStore";
-import absurd from "./absurd";
+import store, { addChange, hasTouchedMushroom } from "./store";
 
 export const TILE_SIZE = 128;
 const SKY_HEIGHT_TILES = 4;
@@ -68,24 +66,12 @@ export default class MapLoader {
     _.range(0, tiles.length).forEach((i) => {
       this.createTile(i);
     });
-    let changes = PersistentStore.shared().getChanges();
-    changes.forEach((change, idx) => {
-      switch (change) {
-        case Change.DELETE:
-          this.digTile(this.tileXYFromIndex(idx), false);
-          break;
-        case Change.PLACE_DIRT:
-          this.unDigTile(this.tileXYFromIndex(idx), TileKey.DIRT, false);
-          break;
-        case Change.PLACE_MUSHROOM:
-          this.unDigTile(
-            this.tileXYFromIndex(idx),
-            TileKey.STONE_WITH_MUSHROOM,
-            false
-          );
-          break;
-        default:
-          absurd(change);
+    let changes = store.getState().changes;
+    changes.forEach(([idx, tileType]) => {
+      if (tileType) {
+        this.unDigTile(this.tileXYFromIndex(idx), tileType, false);
+      } else {
+        this.digTile(this.tileXYFromIndex(idx), false);
       }
     });
   }
@@ -154,6 +140,7 @@ export default class MapLoader {
             )
           ).length !== 0;
       if (!onDirt) {
+        store.dispatch(hasTouchedMushroom());
         sprite.setVelocityY(-1500);
         collisionTile.tilemap.scene.cameras.main.shake(70, 0.02);
         return true;
@@ -199,9 +186,9 @@ export default class MapLoader {
     return this.digTile(this.worldToTileXY(x, y));
   }
 
-  private digTile(xy: Vector, store = true): Tilemaps.Tile {
-    if (store) {
-      PersistentStore.shared().addChange(this.indexForTile(xy), Change.DELETE);
+  private digTile(xy: Vector, shouldStore = true): Tilemaps.Tile {
+    if (shouldStore) {
+      store.dispatch(addChange([this.indexForTile(xy), null]));
     }
     const tileType = xy.y < SKY_HEIGHT_TILES ? TileKey.BLANK : TileKey.STONE;
     return this.putTileAt(tileType, xy);
@@ -211,14 +198,9 @@ export default class MapLoader {
     this.unDigTile(this.worldToTileXY(x, y), type);
   }
 
-  private unDigTile(xy: Vector, type: TileKey, store = true): void {
-    if (store) {
-      PersistentStore.shared().addChange(
-        this.indexForTile(xy),
-        type == TileKey.STONE_WITH_MUSHROOM
-          ? Change.PLACE_MUSHROOM
-          : Change.PLACE_DIRT
-      );
+  private unDigTile(xy: Vector, type: TileKey, shouldStore = true): void {
+    if (shouldStore) {
+      store.dispatch(addChange([this.indexForTile(xy), type]));
     }
     this.putTileAt(type, xy);
   }

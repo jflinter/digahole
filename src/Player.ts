@@ -1,12 +1,11 @@
 import Phaser from "phaser";
 import _ from "lodash";
 
-import { TileKey } from "./TileKey";
-import eventsCenter from "./EventsCenter";
+import store from "./store";
 
-import type { Keys } from "./Controls";
 const GNOME_IMAGE = "voxel_gnome";
 const ITEMS_SPRITESHEET = "voxel_items";
+import { getKeys } from "./Keys";
 
 /**
  * A class that wraps up our 2D platforming player logic. It creates, animates and moves a sprite in
@@ -14,12 +13,10 @@ const ITEMS_SPRITESHEET = "voxel_items";
  * method when you're done with the player.
  */
 export default class Player {
-  shovelContents?: TileKey;
   scene: Phaser.Scene;
   sprite: Phaser.Physics.Arcade.Sprite;
   rectangle: Phaser.GameObjects.Rectangle;
   container: Phaser.GameObjects.Container;
-  keys: Keys;
 
   public static preload(scene: Phaser.Scene) {
     scene.load.image(GNOME_IMAGE, "assets/images/gnome.png");
@@ -32,22 +29,12 @@ export default class Player {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.scene = scene;
-    this.keys = {
-      left: { isDown: false },
-      right: { isDown: false },
-      up: { isDown: false },
-      down: { isDown: false },
-      w: { isDown: false },
-      a: { isDown: false },
-      s: { isDown: false },
-      d: { isDown: false },
-    };
 
     this.sprite = scene.physics.add
       .sprite(x, y, GNOME_IMAGE)
       .setScale(0.6)
-      .setDrag(5000, 0)
-      .setMaxVelocity(1000, 2000);
+      .setDrag(7000, 0)
+      .setMaxVelocity(1000, 1700);
 
     const shovelSprite = scene.add.sprite(
       0,
@@ -63,8 +50,6 @@ export default class Player {
     this.container = scene.add
       .container(x, y, [shovelSprite, this.rectangle])
       .setScale(0.3);
-
-    eventsCenter.on("keyboard", (keys) => (this.keys = keys));
   }
 
   freeze() {
@@ -73,16 +58,15 @@ export default class Player {
   }
 
   update() {
-    const keys = this.keys;
-
+    const keys = getKeys();
     const onGround = this.sprite.body.blocked.down;
     const acceleration = 3000;
 
     // Apply horizontal acceleration when left/a or right/d are applied
-    if (keys.left.isDown || keys.a.isDown) {
+    if (keys.left) {
       this.sprite.setAccelerationX(-acceleration);
       this.flip(true);
-    } else if (keys.right.isDown || keys.d.isDown) {
+    } else if (keys.right) {
       this.sprite.setAccelerationX(acceleration);
       this.flip(false);
     } else {
@@ -90,7 +74,7 @@ export default class Player {
     }
 
     // Only allow the player to jump if they are on the ground
-    if (onGround && (keys.up.isDown || keys.w.isDown)) {
+    if (onGround && keys.up) {
       this.jump();
     }
 
@@ -106,7 +90,7 @@ export default class Player {
     this.container.x = this.sprite.x + 30;
     this.container.y = this.sprite.y + 20;
     this.container.setAngle(45 + angleToMouse);
-    this.rectangle.setVisible(!!this.shovelContents);
+    this.rectangle.setVisible(!!store.getState().player.shovelContents);
   }
 
   jump() {

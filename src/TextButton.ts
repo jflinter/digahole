@@ -1,6 +1,8 @@
 export default class TextButton extends Phaser.GameObjects.Text {
-  constructor(scene, x, y, text, style, callback) {
+  private italicize: boolean;
+  constructor(scene, x, y, text, style, callback, italicize = false) {
     super(scene, x, y, text, style);
+    this.italicize = italicize;
 
     this.setInteractive({ useHandCursor: true })
       .on("pointerover", () => this.enterButtonHoverState())
@@ -13,15 +15,21 @@ export default class TextButton extends Phaser.GameObjects.Text {
   }
 
   enterButtonHoverState() {
-    this.setStyle({ fontStyle: "italic" });
+    if (this.italicize) {
+      this.setStyle({ fontStyle: "italic" });
+    }
   }
 
   enterButtonRestState() {
-    this.setStyle({ fontStyle: "normal" });
+    if (this.italicize) {
+      this.setStyle({ fontStyle: "normal" });
+    }
   }
 
   enterButtonActiveState() {
-    this.setStyle({ fontStyle: "italic" });
+    if (this.italicize) {
+      this.setStyle({ fontStyle: "italic" });
+    }
   }
 
   innerWidth() {

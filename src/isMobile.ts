@@ -1,5 +1,3 @@
-import Phaser from "phaser";
+import isMobile from "ismobilejs";
 
-export default function isMobile(scene: Phaser.Scene): boolean {
-  return scene.sys.game.device.input.touch;
-}
+export const mobile = isMobile(window.navigator).any;

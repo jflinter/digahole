@@ -2,8 +2,9 @@ import Phaser from "phaser";
 import Intro from "./Intro";
 import Game from "./Game";
 import UI from "./UI";
-import PersistentStore from "./PersistentStore";
-import MessageState from "./Messages";
+import { initializeDebug } from "./debug";
+import { initializeFirebase } from "./Firebase";
+import store from "./store";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -28,11 +29,11 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 (async () => {
-  await PersistentStore.initialize();
-  config.scene =
-    PersistentStore.shared().getMessageState() === MessageState.Intro
-      ? [Intro, Game, UI]
-      : [Game, UI];
+  initializeDebug();
+  initializeFirebase();
+  config.scene = store.getState().achievements.includes("intro")
+    ? [Game, UI]
+    : [Intro, Game, UI];
   const game = new Phaser.Game(config);
   window.addEventListener("resize", () => {
     game.scale.resize(window.innerWidth, window.innerHeight);

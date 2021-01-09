@@ -1,20 +1,8 @@
 import Phaser from "phaser";
 import _ from "lodash";
 
-import eventsCenter from "./EventsCenter";
-
-export type Key = { isDown: boolean };
-export type Keys = {
-  left: Key;
-  right: Key;
-  up: Key;
-  down: Key;
-  w: Key;
-  a: Key;
-  s: Key;
-  d: Key;
-};
-
+import { mobile } from "./isMobile";
+import { keyType, setKey } from "./Keys";
 export const CONTROL_SIZE = 300;
 
 /**
@@ -23,22 +11,8 @@ export const CONTROL_SIZE = 300;
  * method when you're done with the player.
  */
 export default class Controls {
-  public keys: Keys;
-  public isMobile: boolean;
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    this.isMobile = scene.sys.game.device.input.touch;
-    if (this.isMobile) {
-      this.keys = {
-        left: { isDown: false },
-        right: { isDown: false },
-        up: { isDown: false },
-        down: { isDown: false },
-        w: { isDown: false },
-        a: { isDown: false },
-        s: { isDown: false },
-        d: { isDown: false },
-      };
-
+    if (mobile) {
       scene.input.addPointer(2);
 
       // gutter width between buttons
@@ -46,7 +20,7 @@ export default class Controls {
 
       // Create a button helper
       const createBtn = (
-        key,
+        key: keyType,
         x,
         y,
         width = CONTROL_SIZE,
@@ -79,13 +53,11 @@ export default class Controls {
         rectangle
           .on("pointerdown", () => {
             triangle.setFillStyle(0x000000);
-            this.keys[key].isDown = true;
-            this.updateKeys();
+            setKey(key, true);
           })
           .on("pointerup", () => {
             triangle.setFillStyle(0x5f7374);
-            this.keys[key].isDown = false;
-            this.updateKeys();
+            setKey(key, false);
           });
 
         const container = scene.add.container(x, y, [rectangle, triangle]);
@@ -96,6 +68,16 @@ export default class Controls {
       createBtn("up", x + CONTROL_SIZE + GUTTER, y);
       createBtn("right", x + 2 * CONTROL_SIZE + 2 * GUTTER, y);
     } else {
+      const createKey = (keyCode, prop) => {
+        const key = scene.input.keyboard.addKey(keyCode);
+        key
+          .on(Phaser.Input.Keyboard.Events.DOWN, () => {
+            setKey(prop, true);
+          })
+          .on(Phaser.Input.Keyboard.Events.UP, () => {
+            setKey(prop, false);
+          });
+      };
       // Track the arrow keys
       const {
         LEFT,
@@ -107,22 +89,12 @@ export default class Controls {
         S,
         D,
       } = Phaser.Input.Keyboard.KeyCodes;
-      this.keys = scene.input.keyboard.addKeys({
-        left: LEFT,
-        right: RIGHT,
-        up: UP,
-        down: DOWN,
-        w: W,
-        a: A,
-        s: S,
-        d: D,
-      }) as Keys;
-      scene.input.keyboard.on("keydown", this.updateKeys, this);
-      scene.input.keyboard.on("keyup", this.updateKeys, this);
+      createKey(LEFT, "left");
+      createKey(RIGHT, "right");
+      createKey(UP, "up");
+      createKey(A, "left");
+      createKey(W, "up");
+      createKey(D, "right");
     }
-  }
-
-  updateKeys() {
-    eventsCenter.emit("keyboard", this.keys);
   }
 }

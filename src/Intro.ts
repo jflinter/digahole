@@ -1,13 +1,14 @@
 import Phaser from "phaser";
 import _ from "lodash";
-import isMobile from "./isMobile";
+import { mobile } from "./isMobile";
 import TextButton from "./TextButton";
 import { GAMESCENE_KEY } from "./Game";
+import store, { addAchievement } from "./store";
 
 export const IntroScene_Key = "intro-scene";
 
 const INTRO_TEXT =
-  "A single desire consumes your thoughts:\nyou yearn to hear the clang of your shovel upon the soil,\nto feel the damp aroma of dirt in your nostrils,\nto peer into the darkness that lies below and within,\nto toil valiantly against the infinity of the earth,\nto\n*DIG\n*A\n*H*O*O*O*O*O*O*O*O*OL*L*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*!*!*!*!";
+  "A single desire consumes your thoughts:\nyou yearn to hear the clang of your shovel upon the soil,\nto feel the damp aroma of dirt in your nostrils,\nto peer into the darkness that lies below and within,\nto toil valiantly against the infinity of the earth,\nto\n*DIG\n*A\n*H*O*O*O*O*O*O*O*O*OL*L*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*E*!*!*!*!";
 
 export default class UIScene extends Phaser.Scene {
   private label!: Phaser.GameObjects.Text;
@@ -47,7 +48,7 @@ export default class UIScene extends Phaser.Scene {
   create() {
     const camera = this.cameras.main;
     camera.setBackgroundColor("#000");
-    const offset = isMobile(this) ? 10 : 160;
+    const offset = mobile ? 10 : 160;
     this.label = this.add
       .text(0, 20, "", {
         fontSize: "32px",
@@ -67,20 +68,22 @@ export default class UIScene extends Phaser.Scene {
     const height = Phaser.GameObjects.GetTextSize(
       this.label,
       this.label.getTextMetrics(),
-      text.split("\n")
+      text.replace(/~/g, "\n").split("\n")
     ).height;
     const button = new TextButton(
       this,
       0,
-      height + 100,
+      height + 70,
       "✨BEGIN✨",
       {
         color: "#B0E9FC",
         fontSize: "64px",
       },
       () => {
+        store.dispatch(addAchievement("intro"));
         this.scene.start(GAMESCENE_KEY);
-      }
+      },
+      true
     );
     button.setX(camera.width / 2 - button.innerWidth() / 2);
     this.incr(text, 0, () => {
