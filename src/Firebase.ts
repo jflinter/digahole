@@ -7,7 +7,13 @@ import store, { getState$, setLeaderboard } from "./store";
 import type { LeaderboardEntry } from "./store";
 
 // @ts-ignore
-const DEPTHS_TABLE = "user_depths_" + process.env.FIREBASE_SUFFIX;
+console.log(`firebase suffix: ${process.env.FIREBASE_SUFFIX}`);
+
+// @ts-ignore
+console.log(`node env: ${process.env.NODE_ENV}`);
+
+// @ts-ignore
+const DEPTHS_TABLE = `user_depths_${process.env.FIREBASE_SUFFIX}`;
 
 export const initializeFirebase = () => {
   const firebaseConfig = {
