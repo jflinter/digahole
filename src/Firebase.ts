@@ -6,6 +6,9 @@ import { map, filter, distinctUntilChanged } from "rxjs/operators";
 import store, { getState$, setLeaderboard } from "./store";
 import type { LeaderboardEntry } from "./store";
 
+// @ts-ignore
+const DEPTHS_TABLE = "user_depths_" + process.env.FIREBASE_SUFFIX;
+
 export const initializeFirebase = () => {
   const firebaseConfig = {
     apiKey: "AIzaSyBn-3sl-t03yBJKYrNLcuthCuR8IYPPa_8",
@@ -18,9 +21,9 @@ export const initializeFirebase = () => {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const updateDepth = (entry: LeaderboardEntry) => {
-    db.collection("user_depths").doc(entry.randomSeed).set(entry);
+    db.collection(DEPTHS_TABLE).doc(entry.randomSeed).set(entry);
   };
-  db.collection("user_depths").onSnapshot((snapshot) => {
+  db.collection(DEPTHS_TABLE).onSnapshot((snapshot) => {
     const holeDepths: LeaderboardEntry[] = snapshot.docs
       .map((doc) => {
         const data = doc.data();

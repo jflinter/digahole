@@ -1,0 +1,4 @@
+[context.production.environment]
+  FIREBASE_SUFFIX = "production"
+[context.deploy-preview.environment]
+  FIREBASE_SUFFIX = "staging"
