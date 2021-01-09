@@ -71,12 +71,16 @@ const achievements: achievement[] = [
     prerequisites: ["endgame"],
     check: (state) => {
       const max = _.maxBy(state.leaderboard, (entry) => entry.depth);
-      return !!max && max.randomSeed === state.randomSeed;
+      return (
+        !!max &&
+        max.randomSeed === state.randomSeed &&
+        state.leaderboard.length > 1
+      );
     },
   },
   {
     type: "victory_nosweatshirt",
-    prerequisites: ["endgame"],
+    prerequisites: ["victory"],
     check: (state) => {
       const max = _.maxBy(state.leaderboard, (entry) => entry.depth);
       return max?.randomSeed === state.randomSeed;

@@ -110,7 +110,11 @@ export default class MapLoader {
 
   holeDepth(): [number, boolean] {
     const points: [number, number][] = this.map
-      .filterTiles((t) => t.index === TileKey.STONE)
+      .filterTiles((t) =>
+        [TileKey.STONE, TileKey.PORTAL_ORANGE, TileKey.PORTAL_BLUE].includes(
+          t.index
+        )
+      )
       .map((t) => [t.x, t.y]);
     const islands = this.holeIslands(points);
     const atSurface = _.filter(islands, (island) =>
