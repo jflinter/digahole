@@ -12,17 +12,15 @@ import { Chance } from "chance";
 export const UIScene_Key = "ui-scene";
 const AVATAR_KEY = "pixel_jack";
 
-const DEFAULT_NAME = "Agnomenymous";
-
 type delay = { char: integer; line: integer };
 
 export default class UIScene extends Phaser.Scene {
+  static instance: UIScene;
   private mutex = new Mutex();
   private depthLabel!: Phaser.GameObjects.Text;
   private messageLabel!: Phaser.GameObjects.Text;
   private avatar!: Phaser.GameObjects.Sprite;
   private graphics!: Phaser.GameObjects.Graphics;
-  private currentMessages: [string, string] = ["", ""];
   private leaderboardButton!: TextButton;
 
   constructor() {
@@ -34,6 +32,7 @@ export default class UIScene extends Phaser.Scene {
   }
 
   create() {
+    UIScene.instance = this;
     this.leaderboardButton = new TextButton(
       this,
       this.cameras.main.width - 100,
@@ -44,8 +43,10 @@ export default class UIScene extends Phaser.Scene {
         fontSize: "64px",
       },
       () => {
-        const messages = buildLeaderboard(store.getState());
-        this.sendMessages([messages], { char: 5, line: 15000 });
+        const message = buildLeaderboard(store.getState());
+        this.aroundMessage(async () => {
+          await this.sendMessage(message, { char: 5, line: 15000 });
+        });
       }
     ).setVisible(false);
     this.add.existing(this.leaderboardButton);
@@ -76,9 +77,29 @@ export default class UIScene extends Phaser.Scene {
           const state = store.getState();
           const messages = messagesFor(achievement, state);
           const after = afterEarning(achievement);
-          this.sendMessages(messages, { char: 20, line: 6000 }, after);
+          this.aroundMessage(async () => {
+            for (const message in messages) {
+              const cpms = 0.01;
+              const ms = Math.max(message.length / cpms, 5000);
+              await this.sendMessage(message, { char: 20, line: ms });
+            }
+          }, after);
         }
       });
+  }
+
+  async sendDebugMessages(
+    messages: string[],
+    cpms: number,
+    minDuration: number
+  ) {
+    this.aroundMessage(async () => {
+      for (const message of messages) {
+        const ms = Math.max(minDuration, message.length / cpms);
+        console.log([message, ms]);
+        await this.sendMessage(message, { char: 20, line: ms });
+      }
+    });
   }
 
   update() {
@@ -92,42 +113,26 @@ export default class UIScene extends Phaser.Scene {
     );
   }
 
-  async sendMessages(
-    messages: string[],
-    delay: delay,
-    callback: () => void = () => {}
-  ) {
-    if (messages.length === 0) {
-      callback();
-      return;
-    }
+  async aroundMessage(send: () => Promise<void>, callback?: () => void) {
     const release = await this.mutex.acquire();
-    this.currentMessages = ["", ""];
     this.depthLabel.setVisible(false);
     this.graphics.setVisible(true);
     this.avatar.setVisible(true);
-    for (const message of messages) {
-      await this.sendMessage(message, delay);
-    }
+    await send();
     this.avatar.setVisible(false);
     this.depthLabel.setVisible(true);
     this.graphics.setVisible(false);
-    this.currentMessages = ["", ""];
-    callback();
+    callback && callback();
     release();
   }
 
   async sendMessage(message: string, delay: delay) {
     message = this.messageLabel.getWrappedText(message).join("\n");
-    // const lastLine =
-    // this.currentMessages[1] === "" ? "" : `${this.currentMessages[1]}\n`;
-    const lastLine = ""; // Switch comments to enable message buffering
-    this.currentMessages = [lastLine, message];
     this.graphics.clear();
     const size = Phaser.GameObjects.GetTextSize(
       this.messageLabel,
       this.messageLabel.getTextMetrics(),
-      this.currentMessages.join().split("\n")
+      message.split("\n")
     );
     const width =
       size.width +
@@ -141,10 +146,7 @@ export default class UIScene extends Phaser.Scene {
     this.graphics.fillRoundedRect(0, 0, width, height, 30);
     this.graphics.lineStyle(4, 0x000000);
     this.graphics.strokeRoundedRect(0, 0, width, height, 30);
-    this.messageLabel
-      .setFixedSize(width, height)
-      .setText(lastLine)
-      .setVisible(true);
+    this.messageLabel.setText("").setFixedSize(width, height).setVisible(true);
     for (let c of message) {
       this.messageLabel.text += c;
       await this.wait(delay.char);
@@ -164,14 +166,6 @@ const buildLeaderboard = (state: RootState): string => {
   const chance = new Chance();
   const entries = state.leaderboard;
   const randomSeed = state.randomSeed;
-  const conclusions = [
-    "Keep digging!",
-    "Back to digging!",
-    "Onwards!",
-    "Downwards!",
-    "Don't give up!",
-    "Enough chit-chat, time to dig.",
-  ];
   const filtered = entries
     .filter(
       (entry) => entry.depth && (entry.name || entry.randomSeed === randomSeed)
@@ -213,9 +207,27 @@ const buildLeaderboard = (state: RootState): string => {
     }
   });
 
-  const truncated = lines.slice(0, place + 1);
+  const maxEntries = 5;
+  const truncated = (() => {
+    if (place > maxEntries - 2) {
+      return [
+        ...lines.slice(0, maxEntries - 1),
+        "...then a bunch of other people...",
+        ...lines.slice(place - 1, place + 2),
+      ];
+    } else {
+      return lines.slice(0, maxEntries);
+    }
+  })();
 
   const edited = truncated.join("\n");
-  const conclusion = chance.pickone(conclusions);
+  const conclusion = chance.pickone([
+    "Keep digging!",
+    "Back to digging!",
+    "Onwards!",
+    "Downwards!",
+    "Don't give up!",
+    "Enough chit-chat, time to dig.",
+  ]);
   return `🕳️ HOLES OF FAME 🕳️\n\n${edited}\n\n${conclusion}`;
 };

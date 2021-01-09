@@ -12,8 +12,12 @@ console.log(`firebase suffix: ${process.env.FIREBASE_SUFFIX}`);
 // @ts-ignore
 console.log(`node env: ${process.env.NODE_ENV}`);
 
-// @ts-ignore
-const DEPTHS_TABLE = `user_depths_${process.env.FIREBASE_SUFFIX}`;
+const DEPTHS_TABLE = `user_depths_${
+  // @ts-ignore
+  process.env.FIREBASE_SUFFIX || "development"
+}`;
+
+console.log(`depths table: ${DEPTHS_TABLE}`);
 
 export const initializeFirebase = () => {
   const firebaseConfig = {

@@ -4,6 +4,7 @@ import store, {
   LOCALSTORAGE_STATE_KEY,
   setOrangeTilePoint,
 } from "./store";
+import UIScene from "./UI";
 
 export const initializeDebug = () => {
   (window as any).debug = {
@@ -28,6 +29,10 @@ export const initializeDebug = () => {
         Game.instance.mapLoader.digTileAtWorldXY(point[0], point[1]);
         store.dispatch(setOrangeTilePoint(null));
       }
+      return (window as any).debug;
+    },
+    sendDebugMessages: (messages, cpms, minDuration) => {
+      UIScene.instance.sendDebugMessages(messages, cpms, minDuration);
       return (window as any).debug;
     },
   };
