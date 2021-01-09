@@ -109,7 +109,7 @@ export const afterEarning = (type: AchievementType) => () => {
       break;
     case "victory":
       megaPrompt(
-        "Enter your shipping address.",
+        "Please enter your shipping address.",
         "Invalid shipping address. Please enter your shipping address.",
         (val) => !val
       );
