@@ -28,7 +28,7 @@ export default class UIScene extends Phaser.Scene {
       this.cameras.main.shake();
       delay = 40;
     } else if (c === "\n") {
-      delay = 1300;
+      delay = 1000;
       this.label.text += text[i];
     } else if (c === "~") {
       delay = 30;

@@ -48,7 +48,7 @@ export default class Game extends Phaser.Scene {
     this.physics.world.setFPS(120);
     const camera = this.cameras.main;
 
-    const [width, height] = [5120, 7168];
+    const [width, height] = [5120, 71680];
 
     this.mapLoader = new MapLoader(this, width, height);
     this.player = new Player(this, width / 2 + TILE_SIZE / 2, 0);
@@ -135,7 +135,7 @@ export default class Game extends Phaser.Scene {
     ) {
       store.dispatch(hasTouchedPortal());
       if (getKeys().up) {
-        if (!this.warpThrottled) {
+        if (!this.warpThrottled && !getKeys().left && !getKeys().right) {
           this.warpThrottled = true;
           this.warp();
         }
@@ -182,7 +182,10 @@ export default class Game extends Phaser.Scene {
         shovelContents
       );
       store.dispatch(setShovelContents(null));
-      if (playerTile.equals(clickedTile)) {
+      if (
+        playerTile.equals(clickedTile) &&
+        ![TileKey.PORTAL_BLUE, TileKey.PORTAL_ORANGE].includes(shovelContents)
+      ) {
         this.player.jump();
       }
     } else {
