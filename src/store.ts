@@ -29,6 +29,9 @@ const achievementsSlice = createSlice({
     addAchievement(state, action: PayloadAction<AchievementType>) {
       state.push(action.payload);
     },
+    removeAchievement(state, action: PayloadAction<AchievementType>) {
+      return state.filter((a) => a !== action.payload);
+    },
   },
 });
 
@@ -144,6 +147,7 @@ export const {
   hasTouchedMushroom,
   hasTouchedPortal,
   addAchievement,
+  removeAchievement,
   setBlueTilePoint,
   setOrangeTilePoint,
 } = {

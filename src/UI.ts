@@ -76,8 +76,8 @@ export default class UIScene extends Phaser.Scene {
           const after = afterEarning(achievement);
           this.aroundMessage(async () => {
             for (const message of messages) {
-              const cpms = 0.015;
-              const ms = Math.max(message.length / cpms, 5000);
+              const cpms = 0.025;
+              const ms = Math.max(message.length / cpms, 3500);
               await this.sendMessage(message, { char: 20, line: ms });
             }
           }, after);

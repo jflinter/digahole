@@ -54,7 +54,7 @@ const achievements: achievement[] = [
   {
     type: "portal_hint",
     prerequisites: ["leaderboard"],
-    check: (state) => state.holeDepth.current >= 20,
+    check: (state) => state.holeDepth.current >= 18,
   },
   {
     type: "portal_touch",
@@ -81,10 +81,7 @@ const achievements: achievement[] = [
   {
     type: "victory_nosweatshirt",
     prerequisites: ["victory"],
-    check: (state) => {
-      const max = _.maxBy(state.leaderboard, (entry) => entry.depth);
-      return max?.randomSeed === state.randomSeed;
-    },
+    check: (state) => true,
   },
 ];
 
@@ -169,7 +166,7 @@ export const messagesFor = (
       return [
         "<bigger gasp than before> I can sense you are near a thing of great and terrible power!",
         "It is said that only adventurers of legendary toil capacity can reach it.",
-        "But that they will be handsomely rewarded with their toils.",
+        "But that they will be handsomely rewarded for their toils.",
         "Handsomely rewarded with a fucken' deep-ass hole, I'll bet!",
         "Anyway I've turned your shovel into a lil' compass to the thingy. 😘",
       ];

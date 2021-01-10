@@ -1,13 +1,23 @@
 import { DB } from "./Firebase";
 import Game from "./Game";
-import store, { setName, setOrangeTilePoint, LeaderboardEntry } from "./store";
+import store, {
+  setName,
+  setOrangeTilePoint,
+  LeaderboardEntry,
+  removeAchievement,
+} from "./store";
 import UIScene from "./UI";
 import { reset } from "./Persistence";
+import { AchievementType } from "./Achievements";
 
 export const initializeDebug = () => {
   (window as any).debug = {
     get store() {
       return store;
+    },
+    removeAchievement: (achievement: AchievementType) => {
+      store.dispatch(removeAchievement(achievement));
+      return (window as any).debug;
     },
     setPlayerName: (name) => {
       store.dispatch(setName(name));
