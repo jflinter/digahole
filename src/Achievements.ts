@@ -200,15 +200,15 @@ export const messagesFor = (
         `I can't believe this is happening! This is so incredible! Somebody really dug this deep! Look at your beautiful hole, ${name}!`,
         "Look there isn't any tracking or whatever in this game so I have no idea who you are. Please email idugahole@jackreed.computer immediately to share the news.",
         "And now for your fabulous prize!",
-
         "Your name will now have a 😎 emoji after it in the leaderboard!",
-        "Ok ok there's more. You will also receive a FREE LIMITED EDITION CYBERHOLE 2021 CREW NECK SWEATSHIRT!!!",
+        "Ok ok fine there's more. You will also receive a FREE LIMITED EDITION CYBERHOLE 2021 CREW NECK SWEATSHIRT as my way of saying thanks for playing!!!",
         "Please enter your shipping address to receive your beautiful sweatshirt.",
       ];
     case "victory_nosweatshirt":
       return [
-        "Aw, bummer to hear you don't want your sweatshirt. But at least you'll have your 😎!",
-        "OK, that's the end of the game! You can keep digging deeper to make it harder for other people to win the game now.",
+        "Aw, bummer to hear you didn't want a sweatshirt. But at least you'll have your 😎!",
+        "OK, that's the end of the game! People have to outdig you in order to win now, so you can keep digging to make it harder for them if you want.",
+        "And maybe there's a secret ending if you dig deep enough! But maybe not.",
         "2021 is definitely going to be your year!!!!!!!!!!!!",
       ];
     default:
