@@ -5,6 +5,7 @@ import megaPrompt from "./megaPrompt";
 import store, { setName } from "./store";
 import type { RootState } from "./store";
 import { mobile } from "./isMobile";
+import { Chance } from "chance";
 
 export type AchievementType =
   | "intro"
@@ -64,19 +65,18 @@ const achievements: achievement[] = [
   {
     type: "endgame",
     prerequisites: ["leaderboard"],
-    check: (state) => state.holeDepth.current >= 30,
+    check: (state) => state.holeDepth.current >= 25,
   },
   {
     type: "victory",
     prerequisites: ["endgame"],
     check: (state) => {
-      const max = _.maxBy(state.leaderboard, (entry) => [
-        entry.depth,
-        -entry.created,
-      ]);
+      const maxDepth = _.max(state.leaderboard.map((e) => e.depth));
+      const winners = state.leaderboard.filter((e) => e.depth === maxDepth);
+      const firstWinner = _.minBy(winners, (w) => w.created);
       return (
-        !!max &&
-        max.randomSeed === state.randomSeed &&
+        !!firstWinner &&
+        firstWinner.randomSeed === state.randomSeed &&
         state.leaderboard.length > 1
       );
     },
@@ -106,15 +106,25 @@ export const afterEarning = (type: AchievementType) => () => {
     case "name_prompt":
       const name = megaPrompt(
         "Enter your full legal name, as it appears on your drivers license or birth certificate.",
-        "No seriously",
+        () => "No seriously",
         (val) => !!val && val !== ""
       )?.replace(/😎/g, "");
       store.dispatch(setName(name || ""));
       break;
     case "victory":
+      let i = 0;
       megaPrompt(
         "Please enter your shipping address.",
-        "Invalid shipping address. Please enter your shipping address.",
+        () => {
+          const errors = [
+            "Invalid ZIP - please enter your address plus full 9 digit ZIP.",
+            "Invalid, uh, capitalization. Please try again in all UPPERCASE.",
+            "OK look I was lying about the sweatshirts, this thing just returns errors until you hit cancel.",
+            "Invalid address.",
+          ];
+          const error = i < errors.length ? errors[i++] : errors[3];
+          return `${error} Please enter your shipping address or hit cancel if you don't want a sweatshirt after all.`;
+        },
         (val) => !val
       );
   }

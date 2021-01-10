@@ -27,6 +27,7 @@ export default class Game extends Phaser.Scene {
   spikeGroup!: Phaser.Physics.Arcade.StaticGroup;
   particles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
   mapLoader!: MapLoader;
+  shovelContentsEnabled: boolean = true;
   static instance: Game;
 
   preload() {
@@ -202,7 +203,9 @@ export default class Game extends Phaser.Scene {
           scale: { start: 1, end: 0 },
         })
         .explode(10, worldPoint.x, worldPoint.y);
-      store.dispatch(setShovelContents(existingType));
+      if (this.shovelContentsEnabled) {
+        store.dispatch(setShovelContents(existingType));
+      }
     }
     const [depth, _hasCaverns] = this.mapLoader.holeDepth();
     store.dispatch(setHoleDepth(depth));

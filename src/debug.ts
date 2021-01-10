@@ -9,6 +9,7 @@ import store, {
 import UIScene from "./UI";
 import { reset } from "./Persistence";
 import { AchievementType } from "./Achievements";
+import megaPrompt from "./megaPrompt";
 
 export const initializeDebug = () => {
   (window as any).debug = {
@@ -41,6 +42,27 @@ export const initializeDebug = () => {
     sendDebugMessages: (messages, cpms, minDuration) => {
       UIScene.instance.sendDebugMessages(messages, cpms, minDuration);
       return (window as any).debug;
+    },
+    disableShovelContents: () => {
+      Game.instance.shovelContentsEnabled = false;
+      return (window as any).debug;
+    },
+    testPrompt: () => {
+      let i = 0;
+      megaPrompt(
+        "Please enter your shipping address.",
+        () => {
+          const errors = [
+            "Invalid ZIP - please enter your address plus full 9 digit ZIP.",
+            "Invalid, uh, capitalization. Please try again in all UPPERCASE.",
+            "OK look I was lying about the sweatshirts, this thing just errors until you hit cancel.",
+            "Invalid address.",
+          ];
+          const error = i < errors.length ? errors[i++] : errors[3];
+          return `${error} Please enter your shipping address or hit cancel if you don't want a sweatshirt after all.`;
+        },
+        (val) => !val
+      );
     },
     prepopulateFirebase: () => {
       ["development", "staging", "production"].forEach((env) => {

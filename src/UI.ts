@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { Mutex } from "async-mutex";
-import { map } from "rxjs/operators";
+import { distinctUntilChanged, filter, map } from "rxjs/operators";
+import _ from "lodash";
 
 import Controls, { CONTROL_SIZE } from "./Controls";
 import CircleTextButton from "./CircleTextButton";
@@ -67,7 +68,11 @@ export default class UIScene extends Phaser.Scene {
     new Controls(this, 20, this.cameras.main.height - CONTROL_SIZE - 20);
 
     getState$()
-      .pipe(map(earnedAchievement))
+      .pipe(
+        map(earnedAchievement),
+        filter((a) => !!a),
+        distinctUntilChanged()
+      )
       .subscribe((achievement) => {
         if (achievement) {
           const state = store.getState();
