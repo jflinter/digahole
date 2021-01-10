@@ -70,7 +70,10 @@ const achievements: achievement[] = [
     type: "victory",
     prerequisites: ["endgame"],
     check: (state) => {
-      const max = _.maxBy(state.leaderboard, (entry) => entry.depth);
+      const max = _.maxBy(state.leaderboard, (entry) => [
+        entry.depth,
+        -entry.created,
+      ]);
       return (
         !!max &&
         max.randomSeed === state.randomSeed &&
