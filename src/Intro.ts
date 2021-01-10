@@ -50,10 +50,10 @@ export default class UIScene extends Phaser.Scene {
     camera.setBackgroundColor("#000");
     const offset = mobile ? 10 : 160;
     this.label = this.add
-      .text(0, 20, "", {
+      .text(20, 20, "", {
         fontSize: "32px",
         color: "#fff",
-        align: "center",
+        align: "left",
         fontStyle: "",
       })
       .setFixedSize(camera.width, camera.height)

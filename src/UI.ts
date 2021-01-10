@@ -76,7 +76,7 @@ export default class UIScene extends Phaser.Scene {
           const after = afterEarning(achievement);
           this.aroundMessage(async () => {
             for (const message of messages) {
-              const cpms = 0.01;
+              const cpms = 0.015;
               const ms = Math.max(message.length / cpms, 5000);
               await this.sendMessage(message, { char: 20, line: ms });
             }
@@ -204,11 +204,11 @@ const buildLeaderboard = (state: RootState): string => {
     }
   });
 
-  const maxEntries = 5;
+  const maxEntries = 10;
   const truncated = (() => {
-    if (place > maxEntries - 2) {
+    if (place > maxEntries) {
       return [
-        ...lines.slice(0, maxEntries - 1),
+        ...lines.slice(0, maxEntries - 2),
         "...then a bunch of other people...",
         ...lines.slice(place - 1, place + 2),
       ];

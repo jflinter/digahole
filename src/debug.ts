@@ -14,7 +14,7 @@ export const initializeDebug = () => {
       return (window as any).debug;
     },
     reset: () => {
-      reset().then(window.location.reload);
+      reset().then(() => window.location.reload());
     },
     warpTo: (x, y) => {
       Game.instance.warpTo(x, y);
