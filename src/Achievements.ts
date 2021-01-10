@@ -149,6 +149,7 @@ export const messagesFor = (
         "And you have to empty your shovel before you can dig again.",
         "If you empty your shovel where you're standing, you will do a convenient little hop.",
         "Dig a deep and beautiful hole!",
+        "Oh one last thing. If I am speaking too slowly - a problem I am known to have - you can tap these lil' bubbles to speed things up.",
       ];
     case "name_prompt":
       return [

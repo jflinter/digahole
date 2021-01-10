@@ -81,7 +81,7 @@ export default class UIScene extends Phaser.Scene {
           this.aroundMessage(
             async () => {
               for (const message of messages) {
-                const cpms = 0.025;
+                const cpms = 0.02;
                 const ms = Math.max(message.length / cpms, 3500);
                 await this.sendMessage(message, { char: 20, line: ms });
               }
@@ -133,33 +133,60 @@ export default class UIScene extends Phaser.Scene {
     release();
   }
 
-  async sendMessage(message: string, delay: delay) {
-    message = this.messageLabel.getWrappedText(message).join("\n");
-    this.graphics.clear();
-    const size = Phaser.GameObjects.GetTextSize(
-      this.messageLabel,
-      this.messageLabel.getTextMetrics(),
-      message.split("\n")
-    );
-    const width =
-      size.width +
-      (this.messageLabel.padding.left || 0) +
-      (this.messageLabel.padding.right || 0);
-    const height =
-      size.height +
-      (this.messageLabel.padding.top || 0) +
-      (this.messageLabel.padding.bottom || 0);
-    this.graphics.fillStyle(0xffffff);
-    this.graphics.fillRoundedRect(0, 0, width, height, 30);
-    this.graphics.lineStyle(4, 0x000000);
-    this.graphics.strokeRoundedRect(0, 0, width, height, 30);
-    this.messageLabel.setText("").setFixedSize(width, height).setVisible(true);
-    for (let c of message) {
-      this.messageLabel.text += c;
-      await this.wait(delay.char);
+  async sendMessage(message: string, delay: delay): Promise<void> {
+    if (message === "") {
+      return;
     }
-    await this.wait(delay.line);
-    this.messageLabel.setVisible(false);
+    return new Promise<void>(async (resolve) => {
+      message = this.messageLabel.getWrappedText(message).join("\n");
+      this.graphics.clear();
+      const size = Phaser.GameObjects.GetTextSize(
+        this.messageLabel,
+        this.messageLabel.getTextMetrics(),
+        message.split("\n")
+      );
+      const width =
+        size.width +
+        (this.messageLabel.padding.left || 0) +
+        (this.messageLabel.padding.right || 0);
+      const height =
+        size.height +
+        (this.messageLabel.padding.top || 0) +
+        (this.messageLabel.padding.bottom || 0);
+      this.graphics.fillStyle(0xffffff);
+      this.graphics.fillRoundedRect(0, 0, width, height, 30);
+      this.graphics.lineStyle(4, 0x000000);
+      this.graphics.strokeRoundedRect(0, 0, width, height, 30);
+      let animating = true;
+      let resolved = false;
+      const wrappedResolve = () => {
+        if (!resolved) {
+          resolved = true;
+          this.messageLabel.setVisible(false);
+          resolve();
+        }
+      };
+      this.messageLabel
+        .setText("")
+        .setFixedSize(width, height)
+        .setVisible(true)
+        .setInteractive()
+        .off("pointerdown")
+        .on("pointerdown", () => {
+          if (this.messageLabel.text === message) {
+            wrappedResolve();
+          } else {
+            animating = false;
+            this.messageLabel.text = message;
+          }
+        });
+      for (var i = 0; i < message.length && animating; i++) {
+        this.messageLabel.text = message.slice(0, i + 1);
+        await this.wait(delay.char);
+      }
+      await this.wait(delay.line);
+      wrappedResolve();
+    });
   }
 
   async wait(millis: integer) {
