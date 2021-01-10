@@ -1,10 +1,5 @@
 import Phaser from "phaser";
-import Intro from "./Intro";
-import Game from "./Game";
-import UI from "./UI";
-import { initializeDebug } from "./debug";
-import { initializeFirebase } from "./Firebase";
-import store from "./store";
+import { preload, getPeristed } from "./Persistence";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -29,8 +24,20 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 (async () => {
+  await preload();
+  const val = getPeristed();
+  console.log(`preloaded: ${val}`);
+
+  // Note: we cannot import `store` (or anything that in turn imports it)
+  // until we have called `await preload()`, hence the async imports here.
+  const { initializeDebug } = await import("./debug");
+  const { initializeFirebase } = await import("./Firebase");
   initializeDebug();
   initializeFirebase();
+  const store = (await import("./store")).default;
+  const Intro = (await import("./Intro")).default;
+  const Game = (await import("./Game")).default;
+  const UI = (await import("./UI")).default;
   config.scene = store.getState().achievements.includes("intro")
     ? [Game, UI]
     : [Intro, Game, UI];

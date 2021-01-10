@@ -175,11 +175,11 @@ export const messagesFor = (
       ];
     case "portal_touch":
       return [
-        `Good grief ${name}! It's a portal to the ass-tral plane! An ass-hole!`,
-        "Jump when you're touching the ass-hole to enter it. [editor's note: i am sorry]",
-        "Just like merry mushrooms, you can move ass-holes around by digging them.",
+        `Good grief ${name}! It's a portal to the ass-tral plane! I haven't seen one of these since Burning Man!`,
+        "When you're standing on the portal, push the jump button to rub the energy crystal that you carry in your pocket at all times and transcend your puny physical form.",
+        "Just like merry mushrooms, you can move ass-tral portals around by digging them.",
         "Think of how deep you'll be able to dig with this thing! Surely this was worth the toil!!",
-        "Dig a little deeper and we will begin ⚡Cyberhole 2021: ENDGAME⚡.",
+        "Get a little deeper and we will begin ⚡Cyberhole 2021: ENDGAME⚡.",
       ];
     case "endgame":
       const max = _.maxBy(state.leaderboard, (entry) => entry.depth);

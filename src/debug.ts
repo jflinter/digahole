@@ -1,12 +1,8 @@
 import { DB } from "./Firebase";
 import Game from "./Game";
-import store, {
-  setName,
-  LOCALSTORAGE_STATE_KEY,
-  setOrangeTilePoint,
-  LeaderboardEntry,
-} from "./store";
+import store, { setName, setOrangeTilePoint, LeaderboardEntry } from "./store";
 import UIScene from "./UI";
+import { reset } from "./Persistence";
 
 export const initializeDebug = () => {
   (window as any).debug = {
@@ -18,8 +14,7 @@ export const initializeDebug = () => {
       return (window as any).debug;
     },
     reset: () => {
-      localStorage.setItem(LOCALSTORAGE_STATE_KEY, "");
-      window.location.reload();
+      reset().then(window.location.reload);
     },
     warpTo: (x, y) => {
       Game.instance.warpTo(x, y);

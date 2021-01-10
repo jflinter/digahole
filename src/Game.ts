@@ -12,7 +12,6 @@ import store, {
   setHoleDepth,
   setShovelContents,
   hasTouchedPortal,
-  setOrangeTilePoint,
 } from "./store";
 import { getKeys } from "./Keys";
 
@@ -105,8 +104,8 @@ export default class Game extends Phaser.Scene {
     }
   }
 
-  lastDug = 0;
-  canWarp = true;
+  digThrottled = false;
+  warpThrottled = false;
   update(time: number, delta: number) {
     this.player.update();
     this.marker?.update();
@@ -136,75 +135,74 @@ export default class Game extends Phaser.Scene {
     ) {
       store.dispatch(hasTouchedPortal());
       if (getKeys().up) {
-        if (this.canWarp) {
-          this.canWarp = false;
+        if (!this.warpThrottled) {
+          this.warpThrottled = true;
           this.warp();
         }
       } else {
-        this.canWarp = true;
+        this.warpThrottled = false;
       }
     }
-    // throttle digging
-    if (pointer.isDown && time - this.lastDug > 500 /* millis */) {
-      this.lastDug = time;
-      const worldPoint = pointer.positionToCamera(
-        camera
-      ) as Phaser.Math.Vector2;
-      const tilePoint = this.mapLoader.worldToTileXY(
-        worldPoint.x,
-        worldPoint.y
-      );
-      console.log(
-        `clicked world point ${[worldPoint.x, worldPoint.y]} tile point ${[
-          tilePoint.x,
-          tilePoint.y,
-        ]}. player tile is ${[playerTile.x, playerTile.y]}`
-      );
-
-      if (!this.canActionAtWorldXY(worldPoint.x, worldPoint.y)) {
-        return;
-      }
-
-      const existingType = this.mapLoader.getTileAtWorldXY(
-        worldPoint.x,
-        worldPoint.y
-      ).index as TileKey;
-
-      const clickedTile = this.mapLoader.worldToTileXY(
-        worldPoint.x,
-        worldPoint.y
-      );
-
-      const shovelContents = store.getState().player.shovelContents;
-      if (shovelContents) {
-        this.mapLoader.unDigTileAtWorldXY(
-          worldPoint.x,
-          worldPoint.y,
-          shovelContents
-        );
-        store.dispatch(setShovelContents(null));
-        if (playerTile.equals(clickedTile)) {
-          this.player.jump();
-        }
-      } else {
-        this.mapLoader.digTileAtWorldXY(worldPoint.x, worldPoint.y);
-        this.cameras.main.shake(20, 0.005);
-
-        this.particles
-          .createEmitter({
-            frame: "square_orange.png",
-            x: 0,
-            y: 0,
-            lifespan: 300,
-            speed: { min: 300, max: 500 },
-            scale: { start: 1, end: 0 },
-          })
-          .explode(10, worldPoint.x, worldPoint.y);
-        store.dispatch(setShovelContents(existingType));
-      }
-      const [depth, _hasCaverns] = this.mapLoader.holeDepth();
-      store.dispatch(setHoleDepth(depth));
+    if (!pointer.isDown) {
+      this.digThrottled = false;
+      return;
     }
+    if (this.digThrottled) {
+      return;
+    }
+    this.digThrottled = true;
+    const worldPoint = pointer.positionToCamera(camera) as Phaser.Math.Vector2;
+    const tilePoint = this.mapLoader.worldToTileXY(worldPoint.x, worldPoint.y);
+    console.log(
+      `clicked world point ${[worldPoint.x, worldPoint.y]} tile point ${[
+        tilePoint.x,
+        tilePoint.y,
+      ]}. player tile is ${[playerTile.x, playerTile.y]}`
+    );
+
+    if (!this.canActionAtWorldXY(worldPoint.x, worldPoint.y)) {
+      return;
+    }
+
+    const existingType = this.mapLoader.getTileAtWorldXY(
+      worldPoint.x,
+      worldPoint.y
+    ).index as TileKey;
+
+    const clickedTile = this.mapLoader.worldToTileXY(
+      worldPoint.x,
+      worldPoint.y
+    );
+
+    const shovelContents = store.getState().player.shovelContents;
+    if (shovelContents) {
+      this.mapLoader.unDigTileAtWorldXY(
+        worldPoint.x,
+        worldPoint.y,
+        shovelContents
+      );
+      store.dispatch(setShovelContents(null));
+      if (playerTile.equals(clickedTile)) {
+        this.player.jump();
+      }
+    } else {
+      this.mapLoader.digTileAtWorldXY(worldPoint.x, worldPoint.y);
+      this.cameras.main.shake(20, 0.005);
+
+      this.particles
+        .createEmitter({
+          frame: "square_orange.png",
+          x: 0,
+          y: 0,
+          lifespan: 300,
+          speed: { min: 300, max: 500 },
+          scale: { start: 1, end: 0 },
+        })
+        .explode(10, worldPoint.x, worldPoint.y);
+      store.dispatch(setShovelContents(existingType));
+    }
+    const [depth, _hasCaverns] = this.mapLoader.holeDepth();
+    store.dispatch(setHoleDepth(depth));
   }
 
   warp() {

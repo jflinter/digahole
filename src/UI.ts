@@ -3,7 +3,7 @@ import { Mutex } from "async-mutex";
 import { map } from "rxjs/operators";
 
 import Controls, { CONTROL_SIZE } from "./Controls";
-import TextButton from "./TextButton";
+import CircleTextButton from "./CircleTextButton";
 import store, { addAchievement, getState$, RootState } from "./store";
 import { afterEarning, earnedAchievement, messagesFor } from "./Achievements";
 import { adjectives, greatAdjectives, holeNouns } from "./Words";
@@ -21,7 +21,7 @@ export default class UIScene extends Phaser.Scene {
   private messageLabel!: Phaser.GameObjects.Text;
   private avatar!: Phaser.GameObjects.Sprite;
   private graphics!: Phaser.GameObjects.Graphics;
-  private leaderboardButton!: TextButton;
+  private leaderboardButton!: CircleTextButton;
 
   constructor() {
     super(UIScene_Key);
@@ -33,15 +33,12 @@ export default class UIScene extends Phaser.Scene {
 
   create() {
     UIScene.instance = this;
-    this.leaderboardButton = new TextButton(
+    this.leaderboardButton = new CircleTextButton(
       this,
       this.cameras.main.width - 100,
-      40,
+      80,
       "👑",
-      {
-        color: "#B0E9FC",
-        fontSize: "64px",
-      },
+      10,
       () => {
         const message = buildLeaderboard(store.getState());
         this.aroundMessage(async () => {
@@ -78,7 +75,7 @@ export default class UIScene extends Phaser.Scene {
           const messages = messagesFor(achievement, state);
           const after = afterEarning(achievement);
           this.aroundMessage(async () => {
-            for (const message in messages) {
+            for (const message of messages) {
               const cpms = 0.01;
               const ms = Math.max(message.length / cpms, 5000);
               await this.sendMessage(message, { char: 20, line: ms });

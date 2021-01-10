@@ -1,22 +1,14 @@
 import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import _ from "lodash";
 import { Observable, asyncScheduler } from "rxjs";
-import { Mutex } from "async-mutex";
-import {
-  map,
-  filter,
-  distinctUntilChanged,
-  throttleTime,
-} from "rxjs/operators";
+import { distinctUntilChanged, throttleTime } from "rxjs/operators";
 import Chance from "chance";
 
 import { TileKey } from "./TileKey";
 import type { AchievementType } from "./Achievements";
+import { getPeristed, persist } from "./Persistence";
 
-export const LOCALSTORAGE_STATE_KEY = "LOCALSTORAGE_STATE_KEY_2";
-
-let existingState = localStorage.getItem(LOCALSTORAGE_STATE_KEY);
-let preloaded = existingState ? JSON.parse(existingState) : {};
+let preloaded = getPeristed();
 
 const holeDepthSlice = createSlice({
   name: "holeDepth",
@@ -136,24 +128,12 @@ export const getState$: () => Observable<RootState> = () =>
     return unsubscribe;
   });
 
-const mutex = new Mutex();
-
 getState$()
   .pipe(
     distinctUntilChanged(_.isEqual),
     throttleTime(1000, asyncScheduler, { trailing: true })
   )
-  .subscribe(async (state) => {
-    const release = await mutex.acquire();
-    try {
-      let json = JSON.stringify(state);
-      console.log("saving");
-      console.log(state);
-      localStorage.setItem(LOCALSTORAGE_STATE_KEY, json);
-    } finally {
-      release();
-    }
-  });
+  .subscribe(persist);
 
 export const {
   setName,
