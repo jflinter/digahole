@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { preload, getPeristed } from "./Persistence";
+import { mobile } from "./isMobile";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -42,7 +43,10 @@ const config: Phaser.Types.Core.GameConfig = {
     ? [Game, UI]
     : [Intro, Game, UI];
   const game = new Phaser.Game(config);
-  window.addEventListener("resize", () => {
-    game.scale.resize(window.innerWidth, window.innerHeight);
-  });
+  game.scale.resize(window.innerWidth, window.innerHeight);
+  if (mobile) {
+    window.addEventListener("resize", () => {
+      game.scale.resize(window.innerWidth, window.innerHeight);
+    });
+  }
 })();
