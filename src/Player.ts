@@ -2,10 +2,11 @@ import Phaser from "phaser";
 import _ from "lodash";
 
 import store from "./store";
+import { getKeys } from "./Keys";
 
 const GNOME_IMAGE = "voxel_gnome";
 const ITEMS_SPRITESHEET = "voxel_items";
-import { getKeys } from "./Keys";
+const TILES_SPRITESHEET = "voxel_shovel_contents_tiles";
 
 /**
  * A class that wraps up our 2D platforming player logic. It creates, animates and moves a sprite in
@@ -15,7 +16,7 @@ import { getKeys } from "./Keys";
 export default class Player {
   scene: Phaser.Scene;
   sprite: Phaser.Physics.Arcade.Sprite;
-  rectangle: Phaser.GameObjects.Rectangle;
+  shovelContentsSprite: Phaser.GameObjects.Sprite;
   container: Phaser.GameObjects.Container;
 
   public static preload(scene: Phaser.Scene) {
@@ -24,6 +25,16 @@ export default class Player {
       ITEMS_SPRITESHEET,
       "assets/spritesheets/spritesheet_items.png",
       "assets/spritesheets/spritesheet_items.xml"
+    );
+    scene.load.spritesheet(
+      TILES_SPRITESHEET,
+      "assets/images/spritesheet_tiles_extruded.png",
+      {
+        frameWidth: 128,
+        frameHeight: 128,
+        margin: 1,
+        spacing: 2,
+      }
     );
   }
 
@@ -43,18 +54,15 @@ export default class Player {
       "shovel_iron.png"
     );
 
-    this.rectangle = scene.add
-      .rectangle(25, -30, 32, 32, 0x9f6c39)
+    this.shovelContentsSprite = scene.add
+      .sprite(25, -30, TILES_SPRITESHEET)
+      .setFrame(0)
       .setAngle(45)
+      .setScale(0.4)
       .setVisible(false);
     this.container = scene.add
-      .container(x, y, [shovelSprite, this.rectangle])
+      .container(x, y, [shovelSprite, this.shovelContentsSprite])
       .setScale(0.3);
-  }
-
-  freeze(frozen) {
-    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    body.moves = frozen;
   }
 
   update() {
@@ -99,7 +107,10 @@ export default class Player {
     this.container.x = this.sprite.x + 30;
     this.container.y = this.sprite.y + 20;
     this.container.setAngle(45 + angleToMouse);
-    this.rectangle.setVisible(!!store.getState().player.shovelContents);
+    const { shovelContents } = store.getState().player;
+    this.shovelContentsSprite
+      .setVisible(!!shovelContents)
+      .setFrame(shovelContents || 0);
   }
 
   jump() {

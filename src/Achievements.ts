@@ -135,7 +135,7 @@ export const messagesFor = (
           ? "Move and jump with the arrows."
           : "Move and jump with the arrow keys or WASD.",
         mobile ? "Tap on dirt to dig!" : "Click on dirt to dig!",
-        "You can only dig tiles that you're next to.",
+        "You can only dig squares that you're next to.",
         "And you have to empty your shovel before you can dig again.",
         "If you empty your shovel where you're standing, you will do a convenient little hop.",
         "Dig a deep and beautiful hole!",
