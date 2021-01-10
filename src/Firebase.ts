@@ -57,8 +57,10 @@ getState$()
         created: state.holeDepth.updated,
       })
     ),
-    distinctUntilChanged(_.isEqual),
-    filter((update) => !!update.name && !!update.depth && !!update.randomSeed)
+    filter((update) => !!update.name && !!update.depth && !!update.randomSeed),
+    distinctUntilChanged(
+      (e1, e2) => e1.name === e2.name && e1.depth == e2.depth
+    )
   )
   .subscribe(updateDepth);
 
