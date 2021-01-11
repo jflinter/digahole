@@ -41,7 +41,7 @@
     "ismobilejs": "^1.1.1",
     "localforage": "^1.9.0",
     "lodash": "^4.17.19",
-    "phaser": "^3.50.1",
+    "phaser": "^3.51.0",
     "rxjs": "^6.5.5"
   },
   "parcelCleanPaths": [

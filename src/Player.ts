@@ -45,7 +45,8 @@ export default class Player {
       .sprite(x, y, GNOME_IMAGE)
       .setScale(0.6)
       .setDrag(7000, 0)
-      .setMaxVelocity(1000, 1700);
+      .setMaxVelocity(1000, 1700)
+      .setBounce(0.2);
 
     const shovelSprite = scene.add.sprite(
       0,

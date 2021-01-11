@@ -227,9 +227,10 @@ export default class MapLoader {
       );
     }
     this.map.getTileAt(vec.x, vec.y)?.destroy();
+    const c = TileKey.collides(tileType);
     const tile = this.map
-      .putTileAt(tileType, vec.x, vec.y)
-      .setCollision(TileKey.collides(tileType));
+      .putTileAt(tileType, vec.x, vec.y, false)
+      .setCollision(c, c, c, c, false);
     if (tileType == TileKey.STONE_WITH_MUSHROOM) {
       tile.setCollisionCallback(MapLoader.onMushroom, {});
     }
