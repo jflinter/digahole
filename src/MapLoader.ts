@@ -8,6 +8,7 @@ import store, {
   hasTouchedMushroom,
   setBlueTilePoint,
   setOrangeTilePoint,
+  setShovelContents,
 } from "./store";
 
 export const TILE_SIZE = 128;
@@ -69,6 +70,16 @@ export default class MapLoader {
     _.range(0, tiles.length).forEach((i) => {
       this.createTile(i);
     });
+    const { shovelContents } = store.getState().player;
+    if (shovelContents) {
+      console.log("resetting");
+      store.dispatch(setShovelContents(null));
+
+      const change = _.last(store.getState().changes.slice(-1));
+      if (change && !change[1]) {
+        store.dispatch(addChange([change[0], shovelContents]));
+      }
+    }
     let changes = store.getState().changes;
     changes.forEach(([idx, tileType]) => {
       if (tileType) {

@@ -25,6 +25,7 @@ export const persist = async (val: object) => {
   try {
     await localforage.setItem(LOCALFORAGE_PERSISTENCE_KEY, val);
     persisted = val;
+    console.log("saved");
   } finally {
     release();
   }

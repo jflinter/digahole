@@ -12,6 +12,7 @@ import store, {
   setHoleDepth,
   setShovelContents,
   hasTouchedPortal,
+  addChange,
 } from "./store";
 import { getKeys } from "./Keys";
 
